@@ -272,6 +272,17 @@ form {
   color: #a5b4fc;
 }
 
+.db-logout {
+  margin: 4px 8px 0;
+  color: #f87171;
+}
+
+.db-logout:hover {
+  background: rgba(248, 113, 113, 0.12) !important;
+  color: #f87171 !important;
+}
+
+
 /* Header */
 .db-header {
   display: flex;
@@ -541,7 +552,7 @@ form {
   color: #065f46;
 }
 
-/* ─── Teacher Dashboard ──────────────────────── */
+/* Teacher Dashboard  */
 
 .td-wrapper {
   display: flex;
@@ -746,9 +757,9 @@ form {
   color: white;
 }
 
-.td-blue   { background: #3b82f6; }
-.td-green  { background: #10b981; }
-.td-red    { background: #ef4444; }
+.td-blue { background: #3b82f6; }
+.td-green { background: #10b981; }
+.td-red { background: #ef4444; }
 .td-orange { background: #f59e0b; }
 
 .td-stat-value {
@@ -822,7 +833,7 @@ form {
   width: 100%;
 }
 
-.td-q-blue   { background: #3b82f6; }
+.td-q-blue { background: #3b82f6; }
 .td-q-purple { background: #4f46e5; }
 
 .td-quick-info {
@@ -945,7 +956,7 @@ form {
   flex: 1;
 }
 .sl-brand { font-weight: 700; color: #111827; }
-.sl-sep   { color: #9ca3af; }
+.sl-sep { color: #9ca3af; }
 .sl-crumb { color: #6b7280; }
 .sl-crumb-active { color: #4f46e5; font-weight: 500; }
 
@@ -1275,7 +1286,7 @@ form {
 .sl-table tr:last-child td { border-bottom: none; }
 
 .sl-date-main { font-size: 13px; font-weight: 500; color: #111827; margin: 0; }
-.sl-date-dur  { font-size: 11px; color: #9ca3af; margin: 0; }
+.sl-date-dur { font-size: 11px; color: #9ca3af; margin: 0; }
 .sl-reason-cell { max-width: 220px; color: #6b7280; }
 
 .sl-badge {
@@ -1568,8 +1579,8 @@ form {
   font-size: 11px;
   font-weight: 600;
 }
-.sm-badge-active    { background: #d1fae5; color: #065f46; }
-.sm-badge-warning   { background: #fef3c7; color: #92400e; }
+.sm-badge-active { background: #d1fae5; color: #065f46; }
+.sm-badge-warning { background: #fef3c7; color: #92400e; }
 .sm-badge-suspended { background: #fee2e2; color: #991b1b; }
 
 /* Pagination */

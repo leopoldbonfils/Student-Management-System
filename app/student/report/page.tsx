@@ -1,11 +1,5 @@
-import React from 'react'
+import { redirect } from 'next/navigation'
 
-const page = () => {
-  return (
-    <div>
-      
-    </div>
-  )
+export default function StudentReportPage() {
+  redirect('/student/dashboard')
 }
-
-export default page
