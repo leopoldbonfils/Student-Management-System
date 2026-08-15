@@ -1,12 +1,6 @@
-import React from 'react'
+import { redirect } from 'next/navigation'
 
-const page = () => {
-  return (
-    <div>
-      <h1>Student Management System</h1>
-      <p>Welcome to the Student Management System!</p>
-    </div>
-  )
+export default function Home() {
+  redirect('/teacher/dashboard')
+
 }
-
-export default page
