@@ -3,145 +3,224 @@
 import React from 'react'
 import Link from 'next/link'
 import {
-  MdCalendarToday, MdSearch, MdNotifications,
-  MdHelp, MdMoreVert, MdSchool, MdFlightTakeoff, MdPendingActions
+  MdMenu, MdNotifications, MdKeyboardArrowDown,
+  MdGroups, MdFlightTakeoff, MdDescription, MdVerified
 } from 'react-icons/md'
 
 const leaveRequests = [
-  { dateRange: 'Oct 12 - Oct 14, 2023', reason: 'Family Emergency',     days: 3, status: 'Pending'  },
-  { dateRange: 'Sep 05 - Sep 06, 2023', reason: 'Medical Appointment',  days: 2, status: 'Approved' },
-  { dateRange: 'Aug 20 - Aug 20, 2023', reason: 'Personal Event',       days: 1, status: 'Approved' },
+  { date: 'Aug 10, 2025', reason: 'Sick Leave',       status: 'Pending' },
+  { date: 'Aug 5, 2025',  reason: 'Family Function',  status: 'Approved' },
+  { date: 'Jul 28, 2025', reason: 'Personal Work',    status: 'Approved' },
 ]
 
-const RADIUS = 54
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS
-const ATTENDANCE = 0.92
-
 export default function StudentDashboard() {
+  const radius = 64
+  const strokeWidth = 18
+  const circumference = 2 * Math.PI * radius
+  const presentPercent = 0.92
+  const absentPercent = 0.08
+
+  // Dash calculations for donut
+  const presentDash = circumference * presentPercent
+  const absentDash = circumference * absentPercent
+
   return (
     <>
-      {/* Header */}
-      <header className="db-header">
-        <span className="db-header-brand">EduPortal</span>
-
-        <div className="db-search">
-          <MdSearch size={18} color="#9ca3af" />
-          <input type="text" placeholder="Search..." />
+      {/* Top Header */}
+      <header className="s2-topbar">
+        <div className="s2-topbar-left">
+          <button className="s2-icon-btn">
+            <MdMenu size={22} color="#4b5563" />
+          </button>
         </div>
 
-        <div className="db-header-actions">
-          <button className="db-icon-btn"><MdNotifications size={22} /></button>
-          <button className="db-icon-btn"><MdHelp size={22} /></button>
-          <Link href="/student/profile" style={{ textDecoration: 'none' }}>
-            <div className="db-avatar">A</div>
+        <div className="s2-topbar-right">
+          <button className="s2-bell-btn">
+            <MdNotifications size={22} color="#4b5563" />
+          </button>
+
+          <Link href="/student/profile" className="s2-profile-link" style={{ textDecoration: 'none' }}>
+            <img
+              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=120&auto=format&fit=crop"
+              alt="John Doe"
+              className="s2-avatar-img"
+            />
+            <div className="s2-profile-text">
+              <span className="s2-profile-name">John Doe</span>
+              <span className="s2-profile-role">Student</span>
+            </div>
+            <MdKeyboardArrowDown size={18} color="#9ca3af" />
           </Link>
         </div>
       </header>
 
-      {/* Content */}
-      <div className="db-content">
-        <h1 className="db-welcome">Welcome back, Alex!</h1>
-        <p className="db-welcome-sub">Here is your academic overview for this semester.</p>
+      {/* Main Content Area */}
+      <div className="s2-content">
+        {/* Welcome Section */}
+        <div className="s2-welcome-row">
+          <h1 className="s2-title">Welcome back, John! 👋</h1>
+          <p className="s2-sub">Here is your academic overview</p>
+        </div>
 
-        {/* Stat Cards */}
-        <div className="db-stats">
-          <div className="db-stat-card">
-            <div className="db-stat-label">ATTENDANCE <MdCalendarToday size={13} /></div>
-            <div className="db-stat-value">92%</div>
-            <div className="db-stat-note positive">↑ +2% from last month</div>
+        {/* ── Top Row: 4 Stat Cards ── */}
+        <div className="s2-stats-grid">
+          {/* Card 1: Attendance */}
+          <div className="s2-stat-card">
+            <div className="s2-stat-icon-wrap s2-icon-green">
+              <MdGroups size={24} />
+            </div>
+            <div className="s2-stat-info">
+              <span className="s2-stat-title">Attendance</span>
+              <span className="s2-stat-num">92%</span>
+              <span className="s2-stat-sub">This Month</span>
+            </div>
           </div>
 
-          <div className="db-stat-card">
-            <div className="db-stat-label">LEAVES TAKEN <MdFlightTakeoff size={13} /></div>
-            <div className="db-stat-value">2 <span className="db-stat-unit">days</span></div>
+          {/* Card 2: Leaves Taken */}
+          <div className="s2-stat-card">
+            <div className="s2-stat-icon-wrap s2-icon-purple">
+              <MdFlightTakeoff size={24} />
+            </div>
+            <div className="s2-stat-info">
+              <span className="s2-stat-title">Leaves Taken</span>
+              <span className="s2-stat-num">2</span>
+              <span className="s2-stat-sub">This Month</span>
+            </div>
           </div>
 
-          <div className="db-stat-card">
-            <div className="db-stat-label">PENDING LEAVES <MdPendingActions size={13} /></div>
-            <div className="db-stat-value">1 <span className="db-stat-unit">request</span></div>
-            <div className="db-stat-note">Awaiting approval</div>
+          {/* Card 3: Pending Leaves */}
+          <div className="s2-stat-card">
+            <div className="s2-stat-icon-wrap s2-icon-amber">
+              <MdDescription size={24} />
+            </div>
+            <div className="s2-stat-info">
+              <span className="s2-stat-title">Pending Leaves</span>
+              <span className="s2-stat-num">1</span>
+              <span className="s2-stat-sub">Pending</span>
+            </div>
           </div>
 
-          <div className="db-stat-card">
-            <div className="db-stat-label">AVG. GRADE <MdSchool size={13} /></div>
-            <div className="db-stat-value">A-</div>
-            <div className="db-stat-note">Top 15% of class</div>
+          {/* Card 4: Average Grade */}
+          <div className="s2-stat-card">
+            <div className="s2-stat-icon-wrap s2-icon-blue">
+              <MdVerified size={24} />
+            </div>
+            <div className="s2-stat-info">
+              <span className="s2-stat-title">Average Grade</span>
+              <span className="s2-stat-num">A-</span>
+              <span className="s2-stat-sub">This Term</span>
+            </div>
           </div>
         </div>
 
-        {/* Bottom Row */}
-        <div className="db-bottom">
-          {/* Donut Chart */}
-          <div className="db-chart-card">
-            <div className="db-card-header">
-              <span>Attendance Overview</span>
-              <button className="db-icon-btn"><MdMoreVert size={20} /></button>
+        {/* Bottom Row: Attendance Overview + Recent Leave Request */}
+        <div className="s2-bottom-grid">
+          {/* Attendance Overview (Donut Chart) */}
+          <div className="s2-card">
+            <div className="s2-card-head">
+              <h2 className="s2-card-title">Attendance Overview</h2>
             </div>
 
-            <div className="db-donut">
-              <svg width="150" height="150" viewBox="0 0 150 150">
-                {/* Background circle */}
-                <circle cx="75" cy="75" r={RADIUS} fill="none" stroke="#e5e7eb" strokeWidth="16" />
-                {/* Progress arc */}
-                <circle
-                  cx="75" cy="75" r={RADIUS}
-                  fill="none"
-                  stroke="#4f46e5"
-                  strokeWidth="16"
-                  strokeDasharray={`${CIRCUMFERENCE * ATTENDANCE} ${CIRCUMFERENCE * (1 - ATTENDANCE)}`}
-                  strokeLinecap="round"
-                  transform="rotate(-90 75 75)"
-                />
-                <text x="75" y="71" textAnchor="middle" fontSize="18" fontWeight="700" fill="#111827">92%</text>
-                <text x="75" y="87" textAnchor="middle" fontSize="11" fill="#6b7280">Present</text>
-              </svg>
-            </div>
+            <div className="s2-donut-layout">
+              {/* SVG Donut Ring */}
+              <div className="s2-donut-wrap">
+                <svg width="170" height="170" viewBox="0 0 170 170">
+                  {/* Absent Arc (Red) */}
+                  <circle
+                    cx="85"
+                    cy="85"
+                    r={radius}
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${absentDash} ${circumference - absentDash}`}
+                    strokeDashoffset={-presentDash}
+                    transform="rotate(-90 85 85)"
+                  />
 
-            <div className="db-legend">
-              <div className="db-legend-item">
-                <span className="db-legend-dot" style={{ background: '#4f46e5' }} />
-                Present (92%)
+                  {/* Present Arc (Green) */}
+                  <circle
+                    cx="85"
+                    cy="85"
+                    r={radius}
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={`${presentDash} ${circumference - presentDash}`}
+                    strokeDashoffset="0"
+                    transform="rotate(-90 85 85)"
+                  />
+
+                  {/* Center Text */}
+                  <text
+                    x="85"
+                    y="80"
+                    textAnchor="middle"
+                    fontSize="24"
+                    fontWeight="700"
+                    fill="#111827"
+                  >
+                    92%
+                  </text>
+                  <text
+                    x="85"
+                    y="100"
+                    textAnchor="middle"
+                    fontSize="12"
+                    fontWeight="500"
+                    fill="#6b7280"
+                  >
+                    Present
+                  </text>
+                </svg>
               </div>
-              <div className="db-legend-item">
-                <span className="db-legend-dot" style={{ background: '#e5e7eb' }} />
-                Absent (8%)
+
+              {/* Legend List */}
+              <div className="s2-donut-legend">
+                <div className="s2-legend-row">
+                  <div className="s2-legend-left">
+                    <span className="s2-dot s2-dot-green" />
+                    <span className="s2-legend-label">Present</span>
+                  </div>
+                  <span className="s2-legend-val">92%</span>
+                </div>
+
+                <div className="s2-legend-row">
+                  <div className="s2-legend-left">
+                    <span className="s2-dot s2-dot-red" />
+                    <span className="s2-legend-label">Absent</span>
+                  </div>
+                  <span className="s2-legend-val">8%</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Leave Requests Table */}
-          <div className="db-table-card">
-            <div className="db-card-header">
-              <span>Recent Leave Requests</span>
-              <Link href="/student/leave">
-                <button className="db-ask-leave">+ Ask Leave</button>
-              </Link>
+          {/* Recent Leave Request */}
+          <div className="s2-card">
+            <div className="s2-card-head">
+              <h2 className="s2-card-title">Recent Leave Request</h2>
             </div>
 
-            <table className="db-table">
-              <thead>
-                <tr>
-                  <th>Date Range</th>
-                  <th>Reason</th>
-                  <th>Days</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
+            <table className="s2-table">
               <tbody>
-                {leaveRequests.map((req, i) => (
+                {leaveRequests.map((row, i) => (
                   <tr key={i}>
-                    <td>{req.dateRange}</td>
-                    <td>{req.reason}</td>
-                    <td>{req.days}</td>
-                    <td>
-                      <span className={`db-badge db-badge-${req.status.toLowerCase()}`}>
-                        {req.status}
+                    <td className="s2-date-cell">{row.date}</td>
+                    <td className="s2-reason-cell">{row.reason}</td>
+                    <td className="s2-status-cell">
+                      <span className={`s2-badge s2-badge-${row.status.toLowerCase()}`}>
+                        {row.status}
                       </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            <div className="s2-view-all">
+              <Link href="/student/leave">View All</Link>
+            </div>
           </div>
         </div>
       </div>
