@@ -15,10 +15,10 @@ const leaveRequests = [
 ]
 
 const navItems = [
-  { name: 'Dashboard', icon: <MdDashboard size={20} /> },
-  { name: 'Students',  icon: <MdPeople size={20} /> },
-  { name: 'Attendance',icon: <MdCalendarToday size={20} /> },
-  { name: 'Schedule',  icon: <MdSchedule size={20} /> },
+  { name: 'Dashboard',  Icon: MdDashboard },
+  { name: 'Students',   Icon: MdPeople },
+  { name: 'Attendance', Icon: MdCalendarToday },
+  { name: 'Schedule',   Icon: MdSchedule },
 ]
 
 const RADIUS = 54
@@ -51,7 +51,7 @@ export default function StudentDashboard() {
               className={`db-nav-item ${activeNav === item.name ? 'db-nav-active' : ''}`}
               onClick={() => setActiveNav(item.name)}
             >
-              {item.icon}
+              <item.Icon size={20} />
               <span>{item.name}</span>
             </button>
           ))}

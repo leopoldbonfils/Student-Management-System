@@ -9,14 +9,14 @@ import {
 import { PiGraduationCapFill } from 'react-icons/pi'
 
 const navItems = [
-  { name: 'Dashboard', icon: <MdDashboard size={18} /> },
-  { name: 'Students', icon: <MdPeople size={18} /> },
-  { name: 'Attendance', icon: <MdCalendarToday size={18} /> },
-  { name: 'Leave Requests', icon: <MdAssignment size={18} /> },
-  { name: 'Add Student', icon: <MdPersonAdd size={18} /> },
-  { name: 'Approval', icon: <MdThumbUp size={18} /> },
-  { name: 'Reports', icon: <MdBarChart size={18} /> },
-  { name: 'Settings', icon: <MdSettings size={18} /> },
+  { name: 'Dashboard',      Icon: MdDashboard },
+  { name: 'Students',       Icon: MdPeople },
+  { name: 'Attendance',     Icon: MdCalendarToday },
+  { name: 'Leave Requests', Icon: MdAssignment },
+  { name: 'Add Student',    Icon: MdPersonAdd },
+  { name: 'Approval',       Icon: MdThumbUp },
+  { name: 'Reports',        Icon: MdBarChart },
+  { name: 'Settings',       Icon: MdSettings },
 ]
 
 const leaveRequests = [
@@ -61,7 +61,7 @@ export default function TeacherDashboard() {
               className={`td-nav-item ${activeNav === item.name ? 'td-nav-active' : ''}`}
               onClick={() => setActiveNav(item.name)}
             >
-              {item.icon}
+              <item.Icon size={18} />
               <span>{item.name}</span>
             </button>
           ))}
