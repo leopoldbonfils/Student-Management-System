@@ -49,10 +49,12 @@ export default function TeacherDashboard() {
 
   // Calculate Pie slices
   let cumulativePercent = 0
-  const getCoordinatesForPercent = (percent: number) => {
+  const getCoordinatesForPercent = (percent: number): [string, string] => {
     const x = Math.cos(2 * Math.PI * percent)
     const y = Math.sin(2 * Math.PI * percent)
-    return [x, y]
+    // Return formatted string values directly to ensure identical string representations on both server and client,
+    // avoiding floating-point precision discrepancies during serialization.
+    return [x.toFixed(10), y.toFixed(10)]
   }
 
   return (
