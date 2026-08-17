@@ -307,7 +307,7 @@ export default function StudentsManagement() {
           </div>
           <Link href="/teacher/add-student" style={{ textDecoration: 'none' }}>
             <button className="sm-add-btn">
-              <MdPersonAdd size={18} /> + Add Student
+              <MdPersonAdd size={18} /> Add Student
             </button>
           </Link>
         </div>
@@ -427,12 +427,12 @@ export default function StudentsManagement() {
                               border: '1px solid #c7d2fe',
                               background: '#eef2ff',
                               color: '#4338ca',
-                              padding: '6px 12px',
+                              padding: '6px 14px',
                               borderRadius: '6px',
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '5px',
+                              justifyContent: 'center',
                               fontSize: '12px',
                               fontWeight: 600,
                               transition: 'all 0.15s ease'
@@ -446,8 +446,7 @@ export default function StudentsManagement() {
                               e.currentTarget.style.color = '#4338ca'
                             }}
                           >
-                            <MdEdit size={14} />
-                            <span>Edit</span>
+                            Edit
                           </button>
                           <button
                             onClick={() => setDeletingStudent(s)}
@@ -455,12 +454,12 @@ export default function StudentsManagement() {
                               border: '1px solid #fecaca',
                               background: '#fef2f2',
                               color: '#dc2626',
-                              padding: '6px 12px',
+                              padding: '6px 14px',
                               borderRadius: '6px',
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '5px',
+                              justifyContent: 'center',
                               fontSize: '12px',
                               fontWeight: 600,
                               transition: 'all 0.15s ease'
@@ -474,8 +473,7 @@ export default function StudentsManagement() {
                               e.currentTarget.style.color = '#dc2626'
                             }}
                           >
-                            <MdDelete size={14} />
-                            <span>Delete</span>
+                            Delete
                           </button>
                         </div>
                       </td>
@@ -739,19 +737,6 @@ export default function StudentsManagement() {
             padding: '24px',
             textAlign: 'center',
           }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              backgroundColor: '#fee2e2',
-              color: '#ef4444',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-            }}>
-              <MdWarning size={28} />
-            </div>
             <h3 style={{ fontSize: '17px', fontWeight: 600, color: '#111827', margin: '0 0 8px' }}>
               Delete Student?
             </h3>
