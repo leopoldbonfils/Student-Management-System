@@ -49,7 +49,7 @@ export default function MarkAttendance() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const todayStr = new Date().toISOString().split('T')[0]!
-  const [classVal, setClassVal] = useState('Grade 10 - Mathematics')
+  const [classVal, setClassVal] = useState('React Native')
   const [dateVal, setDateVal] = useState(todayStr)
   const [students, setStudents] = useState<StudentAttendanceItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -199,13 +199,11 @@ export default function MarkAttendance() {
                 value={classVal}
                 onChange={e => setClassVal(e.target.value)}
               >
+                <option value="React Native">React Native</option>
+                <option value="Django">Django</option>
+                <option value="cybersecurity">cybersecurity</option>
+                <option value="UI/UX Design">UI/UX Design</option>
                 <option value="Grade 10 - Mathematics">Grade 10 - Mathematics</option>
-                <option value="Grade 10 - A">Grade 10 - A</option>
-                <option value="Grade 10 - B">Grade 10 - B</option>
-                <option value="Grade 9 - A">Grade 9 - A</option>
-                <option value="Grade 9 - B">Grade 9 - B</option>
-                <option value="Grade 11 - Science">Grade 11 - Science</option>
-                <option value="Grade 11 - Arts">Grade 11 - Arts</option>
               </select>
             </div>
             <div className="at-control-group">

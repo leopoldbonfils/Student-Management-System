@@ -205,19 +205,18 @@ export default function StudentsManagement() {
             </div>
 
             <div className="sm-filter-group">
-              <label className="sm-filter-label">Class / Grade</label>
+              <label className="sm-filter-label">Class / Course</label>
               <select
                 className="sm-filter-select"
                 value={classFilter}
                 onChange={e => setClass(e.target.value)}
               >
                 <option value="">All Classes</option>
-                <option value="Grade 10">Grade 10</option>
+                <option value="React Native">React Native</option>
+                <option value="Django">Django</option>
+                <option value="cybersecurity">cybersecurity</option>
+                <option value="UI/UX Design">UI/UX Design</option>
                 <option value="Grade 10 - Mathematics">Grade 10 - Mathematics</option>
-                <option value="Grade 10 - A">Grade 10 - A</option>
-                <option value="Grade 10 - B">Grade 10 - B</option>
-                <option value="Grade 9">Grade 9</option>
-                <option value="Grade 11">Grade 11</option>
               </select>
             </div>
 

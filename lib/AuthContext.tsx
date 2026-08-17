@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   signOut as firebaseSignOut
 } from 'firebase/auth'
-import { doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, query, collection, where, getDocs, setDoc } from 'firebase/firestore'
 import { auth, db } from './firebase'
 
 export interface UserProfile {
@@ -77,6 +77,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (snapshot.exists()) {
               const data = snapshot.data() as UserProfile
               setProfile({ ...data, uid: currentUser.uid })
+            } else if (currentUser.email) {
+              fetch('/api/get-user-role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: currentUser.email, uid: currentUser.uid }),
+              })
+                .then(r => r.json())
+                .then(data => {
+                  if (data.profile) {
+                    setProfile({ ...data.profile, uid: currentUser.uid })
+                  } else {
+                    setProfile(null)
+                  }
+                })
+                .catch(() => setProfile(null))
             } else {
               setProfile(null)
             }

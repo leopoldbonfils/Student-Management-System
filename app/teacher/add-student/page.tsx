@@ -39,9 +39,12 @@ export default function AddStudent() {
     }
   }
 
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; tempPassword?: string } | null>(null)
+
   const handleSave = async () => {
     setErrorMessage(null)
     setSuccessMessage(null)
+    setCreatedCredentials(null)
 
     if (!form.fullName.trim()) {
       setErrorMessage('Please enter the student\'s full name.')
@@ -69,7 +72,10 @@ export default function AddStudent() {
       }
 
       setSaved(true)
-      setSuccessMessage('Student created successfully. Login credentials have been sent to the student\'s email.')
+      if (data.tempPassword) {
+        setCreatedCredentials({ email: form.email.trim(), tempPassword: data.tempPassword })
+      }
+      setSuccessMessage('Student created successfully! Login credentials have been dispatched to their email.')
       // Reset form
       setForm({
         fullName: '',
@@ -133,18 +139,37 @@ export default function AddStudent() {
         {successMessage && (
           <div style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
+            flexDirection: 'column',
+            gap: '10px',
             color: '#065f46',
             backgroundColor: '#ecfdf5',
             border: '1px solid #a7f3d0',
-            padding: '12px 16px',
+            padding: '16px 20px',
             borderRadius: '8px',
             fontSize: '14px',
             marginBottom: '20px'
           }}>
-            <MdCheckCircle size={18} color="#10b981" />
-            <span>{successMessage}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}>
+              <MdCheckCircle size={20} color="#10b981" />
+              <span>{successMessage}</span>
+            </div>
+            {createdCredentials && (
+              <div style={{
+                display: 'flex',
+                gap: '24px',
+                flexWrap: 'wrap',
+                marginTop: '4px',
+                padding: '10px 14px',
+                background: '#ffffff',
+                border: '1px solid #d1fae5',
+                borderRadius: '6px',
+                fontSize: '13px',
+                color: '#1f2937'
+              }}>
+                <div><strong>Login Email:</strong> <span style={{ fontFamily: 'monospace', color: '#047857' }}>{createdCredentials.email}</span></div>
+                <div><strong>Temporary Password:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#4f46e5', background: '#eef2ff', padding: '2px 8px', borderRadius: '4px' }}>{createdCredentials.tempPassword}</span></div>
+              </div>
+            )}
           </div>
         )}
 
@@ -182,7 +207,7 @@ export default function AddStudent() {
                 <label className="as-label">Full Name</label>
                 <input
                   className="as-input"
-                  placeholder="e.g. Jane Doe"
+                  placeholder="e.g. mugisha leopold"
                   value={form.fullName}
                   onChange={e => handleChange('fullName', e.target.value)}
                 />
@@ -224,7 +249,7 @@ export default function AddStudent() {
               <label className="as-label">Student ID</label>
               <input
                 className="as-input"
-                placeholder="e.g. STU 2024 001"
+                placeholder="e.g. STD 2026"
                 value={form.studentId}
                 onChange={e => handleChange('studentId', e.target.value)}
               />
@@ -238,13 +263,10 @@ export default function AddStudent() {
                 onChange={e => handleChange('assignedClass', e.target.value)}
               >
                 <option value="">Select Class</option>
-                <option value="Grade 10 - Mathematics">Grade 10 - Mathematics</option>
-                <option value="Grade 10 - A">Grade 10 - A</option>
-                <option value="Grade 10 - B">Grade 10 - B</option>
-                <option value="Grade 9 - A">Grade 9 - A</option>
-                <option value="Grade 9 - B">Grade 9 - B</option>
-                <option value="Grade 11 - Science">Grade 11 - Science</option>
-                <option value="Grade 11 - Arts">Grade 11 - Arts</option>
+                <option value="React Native">React Native</option>
+                <option value="Django">Django</option>
+                <option value="cybersecurity">cybersecurity</option>
+                <option value="UI/UX Design">UI/UX Design</option>
               </select>
             </div>
           </div>
@@ -269,7 +291,7 @@ export default function AddStudent() {
               <input
                 type="tel"
                 className="as-input"
-                placeholder="+1 (555) 000 0000"
+                placeholder="0780000000"
                 value={form.phone}
                 onChange={e => handleChange('phone', e.target.value)}
               />

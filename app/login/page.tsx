@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, query, collection, where, getDocs, setDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import { MdEmail, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md'
 
@@ -24,11 +24,23 @@ const LoginPage = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password)
       const user = userCredential.user
 
-      // Check role from Firestore users/{uid}
-      const userDoc = await getDoc(doc(db, 'users', user.uid))
-      const userData = userDoc.data()
+      // Get role securely from server API
+      let userRole = 'student'
+      try {
+        const roleRes = await fetch('/api/get-user-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email, uid: user.uid }),
+        })
+        const roleData = await roleRes.json()
+        if (roleData.success && roleData.role) {
+          userRole = roleData.role
+        }
+      } catch (roleErr) {
+        console.warn('Role check warning:', roleErr)
+      }
 
-      if (userData?.role === 'teacher') {
+      if (userRole === 'teacher') {
         router.push('/teacher/dashboard')
       } else {
         router.push('/student/dashboard')
