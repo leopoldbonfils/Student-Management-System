@@ -1,9 +1,6 @@
 import 'server-only'
 import { Resend } from 'resend'
-
-const resendApiKey = process.env.RESEND_API_KEY || ''
-const resend = resendApiKey ? new Resend(resendApiKey) : null
-const fromEmail = process.env.RESEND_FROM_EMAIL || 'EduPortal <onboarding@resend.dev>'
+import nodemailer from 'nodemailer'
 
 interface SendStudentCredentialsParams {
   name: string
@@ -18,10 +15,10 @@ export async function sendStudentCredentials({
   password,
   loginUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000') + '/login',
 }: SendStudentCredentialsParams) {
-  if (!resend) {
-    console.warn('RESEND_API_KEY is not configured. Email will not be sent to:', email)
-    return { success: false, warning: 'Email provider not configured' }
-  }
+  const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER || ''
+  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || ''
+  const resendApiKey = process.env.RESEND_API_KEY || ''
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'EduPortal <onboarding@resend.dev>'
 
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #f9fafb; border-radius: 12px;">
@@ -75,18 +72,56 @@ Please log in using these credentials and change your password after your first 
 Thank you.
   `.trim()
 
-  const { data, error } = await resend.emails.send({
-    from: fromEmail,
-    to: [email],
-    subject: 'Your EduPortal Student Account Credentials',
-    text: textContent,
-    html: htmlContent,
-  })
+  // 1. If SMTP (e.g. Gmail App Password) is configured, use nodemailer
+  if (smtpUser && smtpPass) {
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      })
 
-  if (error) {
-    console.error('Resend email error:', error)
-    return { success: false, error: error.message }
+      const info = await transporter.sendMail({
+        from: `"EduPortal" <${smtpUser}>`,
+        to: email,
+        subject: 'Your EduPortal Student Account Credentials',
+        text: textContent,
+        html: htmlContent,
+      })
+
+      return { success: true, messageId: info.messageId }
+    } catch (smtpErr: any) {
+      console.error('SMTP email sending error:', smtpErr)
+      return { success: false, error: smtpErr.message }
+    }
   }
 
-  return { success: true, data }
+  // 2. Otherwise use Resend
+  if (resendApiKey && !resendApiKey.startsWith('re_demo')) {
+    try {
+      const resend = new Resend(resendApiKey)
+      const { data, error } = await resend.emails.send({
+        from: fromEmail,
+        to: [email],
+        subject: 'Your EduPortal Student Account Credentials',
+        text: textContent,
+        html: htmlContent,
+      })
+
+      if (error) {
+        console.error('Resend email error:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, data }
+    } catch (resendErr: any) {
+      console.error('Resend unexpected error:', resendErr)
+      return { success: false, error: resendErr.message }
+    }
+  }
+
+  console.warn('No email provider (Resend or SMTP) configured.')
+  return { success: false, warning: 'Email provider not configured' }
 }
