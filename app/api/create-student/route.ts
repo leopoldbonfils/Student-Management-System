@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
         gender: gender || '',
         dob: dob || '',
         address: address?.trim() || '',
+        mustChangePassword: true,
         createdAt: FieldValue.serverTimestamp(),
       })
     } catch (dbError: any) {

@@ -21,6 +21,7 @@ export interface UserProfile {
   gender?: string
   dob?: string
   avatar?: string
+  mustChangePassword?: boolean
   createdAt?: any
 }
 
@@ -98,8 +99,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setLoading(false)
           },
           (error) => {
-            console.error('Error listening to user profile:', error)
-            setLoading(false)
+            console.warn('Profile listener fallback to server API:', error.message)
+            if (currentUser.email) {
+              fetch('/api/get-user-role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: currentUser.email, uid: currentUser.uid }),
+              })
+                .then(r => r.json())
+                .then(data => {
+                  if (data.profile) {
+                    setProfile({ ...data.profile, uid: currentUser.uid })
+                  } else {
+                    setProfile(null)
+                  }
+                  setLoading(false)
+                })
+                .catch(() => {
+                  setProfile(null)
+                  setLoading(false)
+                })
+            } else {
+              setProfile(null)
+              setLoading(false)
+            }
           }
         )
       } else {

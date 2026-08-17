@@ -1,20 +1,25 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/AuthContext'
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
 } from 'firebase/auth'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import {
   MdVpnKey, MdMail,
   MdNotifications, MdTune, MdLock, MdSearch,
-  MdShield, MdCheck
+  MdShield, MdCheck, MdInfo
 } from 'react-icons/md'
 
-export default function StudentSettings() {
-  const { user } = useAuth()
+function StudentSettingsContent() {
+  const { user, profile } = useAuth()
+  const searchParams = useSearchParams()
+  const isFirstLogin = searchParams.get('firstLogin') === 'true' || profile?.mustChangePassword
   const [activeTab, setActiveTab] = useState('security')
   
   // Settings Form States
@@ -57,6 +62,16 @@ export default function StudentSettings() {
       const credential = EmailAuthProvider.credential(user.email, currentPassword)
       await reauthenticateWithCredential(user, credential)
       await updatePassword(user, newPassword)
+      
+      // Clear mustChangePassword in Firestore
+      try {
+        await updateDoc(doc(db, 'users', user.uid), {
+          mustChangePassword: false,
+        })
+      } catch (docErr) {
+        console.warn('Could not update mustChangePassword flag:', docErr)
+      }
+
       setPasswordMsg({ text: 'Password updated successfully!', isError: false })
       setCurrentPassword('')
       setNewPassword('')
@@ -105,6 +120,28 @@ export default function StudentSettings() {
             </button>
           </div>
         </div>
+
+        {/* First-time login banner */}
+        {isFirstLogin && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            color: '#1e40af',
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            padding: '14px 20px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            marginBottom: '20px',
+            fontWeight: 500,
+          }}>
+            <MdInfo size={24} color="#3b82f6" style={{ flexShrink: 0 }} />
+            <div>
+              <strong>Action Required:</strong> You have logged in with your temporary password. Please set your new permanent password below.
+            </div>
+          </div>
+        )}
 
         {/* Settings Layout */}
         <div className="st-layout">
@@ -285,5 +322,13 @@ export default function StudentSettings() {
         </div>
       </div>
     </>
+  )
+}
+
+export default function StudentSettings() {
+  return (
+    <Suspense fallback={<div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Loading settings...</div>}>
+      <StudentSettingsContent />
+    </Suspense>
   )
 }

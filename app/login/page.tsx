@@ -26,6 +26,7 @@ const LoginPage = () => {
 
       // Get role securely from server API
       let userRole = 'student'
+      let mustChange = false
       try {
         const roleRes = await fetch('/api/get-user-role', {
           method: 'POST',
@@ -35,6 +36,7 @@ const LoginPage = () => {
         const roleData = await roleRes.json()
         if (roleData.success && roleData.role) {
           userRole = roleData.role
+          mustChange = !!roleData.profile?.mustChangePassword
         }
       } catch (roleErr) {
         console.warn('Role check warning:', roleErr)
@@ -42,6 +44,8 @@ const LoginPage = () => {
 
       if (userRole === 'teacher') {
         router.push('/teacher/dashboard')
+      } else if (mustChange) {
+        router.push('/student/settings?firstLogin=true')
       } else {
         router.push('/student/dashboard')
       }
