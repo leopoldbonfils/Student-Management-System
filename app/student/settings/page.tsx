@@ -1,6 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useAuth } from '@/lib/AuthContext'
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from 'firebase/auth'
 import {
   MdVpnKey, MdMail,
   MdNotifications, MdTune, MdLock, MdSearch,
@@ -8,20 +14,63 @@ import {
 } from 'react-icons/md'
 
 export default function StudentSettings() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('security')
   
   // Settings Form States
-  const [currentPassword, setCurrentPassword] = useState('••••••••')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [twoFactor, setTwoFactor] = useState(false)
   const [attendanceAlerts, setAttendanceAlerts] = useState(true)
   const [gradeAlerts, setGradeAlerts] = useState(true)
   const [saved, setSaved] = useState(false)
+  const [passwordMsg, setPasswordMsg] = useState<{ text: string; isError: boolean } | null>(null)
+  const [updatingPassword, setUpdatingPassword] = useState(false)
 
   const handleSave = () => {
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+  }
+
+  const handleUpdatePassword = async () => {
+    setPasswordMsg(null)
+    if (!user || !user.email) {
+      setPasswordMsg({ text: 'You must be signed in to update your password.', isError: true })
+      return
+    }
+    if (!currentPassword) {
+      setPasswordMsg({ text: 'Please enter your current password.', isError: true })
+      return
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setPasswordMsg({ text: 'New password must be at least 6 characters.', isError: true })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ text: 'New passwords do not match.', isError: true })
+      return
+    }
+
+    setUpdatingPassword(true)
+    try {
+      const credential = EmailAuthProvider.credential(user.email, currentPassword)
+      await reauthenticateWithCredential(user, credential)
+      await updatePassword(user, newPassword)
+      setPasswordMsg({ text: 'Password updated successfully!', isError: false })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err: any) {
+      console.error('Student password update error:', err)
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setPasswordMsg({ text: 'Incorrect current password.', isError: true })
+      } else {
+        setPasswordMsg({ text: err.message || 'Failed to update password.', isError: true })
+      }
+    } finally {
+      setUpdatingPassword(false)
+    }
   }
 
   return (
@@ -106,11 +155,26 @@ export default function StudentSettings() {
               </div>
 
               <div className="st-form-body">
+                {passwordMsg && (
+                  <div style={{
+                    color: passwordMsg.isError ? '#ef4444' : '#065f46',
+                    backgroundColor: passwordMsg.isError ? '#fef2f2' : '#ecfdf5',
+                    border: `1px solid ${passwordMsg.isError ? '#fecaca' : '#a7f3d0'}`,
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    marginBottom: '16px'
+                  }}>
+                    {passwordMsg.text}
+                  </div>
+                )}
+
                 <div className="st-field">
                   <label className="st-label">Current Password</label>
                   <input 
                     type="password" 
                     className="st-input" 
+                    placeholder="Enter current password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                   />
@@ -122,7 +186,7 @@ export default function StudentSettings() {
                     <input 
                       type="password" 
                       className="st-input" 
-                      placeholder="New Password"
+                      placeholder="New Password (min 6 characters)"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
@@ -140,7 +204,13 @@ export default function StudentSettings() {
                 </div>
 
                 <div>
-                  <button className="st-secondary-btn">Update Password</button>
+                  <button
+                    className="st-secondary-btn"
+                    onClick={handleUpdatePassword}
+                    disabled={updatingPassword}
+                  >
+                    {updatingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
                 </div>
 
                 <div className="st-divider" />

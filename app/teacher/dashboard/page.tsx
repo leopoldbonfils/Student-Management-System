@@ -1,7 +1,20 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  getDocs,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/lib/AuthContext'
 import {
   MdGridView, MdCheckCircle, MdCancel, MdDescription,
   MdPersonAdd, MdCheck, MdClose, MdShowChart,
@@ -9,42 +22,184 @@ import {
 } from 'react-icons/md'
 
 interface LeaveRequest {
-  id: number
+  id: string
   student: string
   type: string
   date: string
   status: 'Pending' | 'Approved' | 'Rejected'
 }
 
-const initialLeaveRequests: LeaveRequest[] = [
-  { id: 1, student: 'Alice Johnson', type: 'Sick Leave',       date: 'Aug 10, 2025', status: 'Pending' },
-  { id: 2, student: 'Bob Smith',     type: 'Family Function',  date: 'Aug 9, 2025',  status: 'Pending' },
-  { id: 3, student: 'Carol White',   type: 'Personal Work',    date: 'Aug 8, 2025',  status: 'Approved' },
-]
+interface AttendanceDayStat {
+  day: string
+  present: number
+  absent: number
+}
 
-// Attendance overview dual-bar data (Mon - Sat)
-const attendanceData = [
-  { day: 'Mon', present: 88, absent: 24 },
-  { day: 'Tue', present: 96, absent: 18 },
-  { day: 'Wed', present: 86, absent: 18 },
-  { day: 'Thu', present: 90, absent: 19 },
-  { day: 'Fri', present: 83, absent: 16 },
-  { day: 'Sat', present: 80, absent: 16 },
-]
+interface ClassSlice {
+  label: string
+  percent: number
+  color: string
+}
 
-// Students by Class pie chart data
-const classData = [
-  { label: 'Grade 10', percent: 30, color: '#3b82f6' },
-  { label: 'Grade 11', percent: 30, color: '#10b981' },
-  { label: 'Grade 12', percent: 25, color: '#f59e0b' },
-  { label: 'Others',   percent: 15, color: '#8b5cf6' },
-]
+const pieColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6']
 
 export default function TeacherDashboard() {
-  const [requests, setRequests] = useState(initialLeaveRequests)
+  const { user, profile, loading } = useAuth()
+  const [totalStudents, setTotalStudents] = useState<number>(0)
+  const [presentToday, setPresentToday] = useState<number>(0)
+  const [absentToday, setAbsentToday] = useState<number>(0)
+  const [pendingLeavesCount, setPendingLeavesCount] = useState<number>(0)
+  const [requests, setRequests] = useState<LeaveRequest[]>([])
+  const [attendanceData, setAttendanceData] = useState<AttendanceDayStat[]>([
+    { day: 'Mon', present: 0, absent: 0 },
+    { day: 'Tue', present: 0, absent: 0 },
+    { day: 'Wed', present: 0, absent: 0 },
+    { day: 'Thu', present: 0, absent: 0 },
+    { day: 'Fri', present: 0, absent: 0 },
+    { day: 'Sat', present: 0, absent: 0 },
+  ])
+  const [classData, setClassData] = useState<ClassSlice[]>([
+    { label: 'Grade 10', percent: 40, color: '#3b82f6' },
+    { label: 'Grade 9', percent: 30, color: '#10b981' },
+    { label: 'Grade 11', percent: 30, color: '#f59e0b' },
+  ])
 
-  const handleStatusChange = (id: number, newStatus: 'Approved' | 'Rejected') => {
-    setRequests(prev => prev.map(req => req.id === id ? { ...req, status: newStatus } : req))
+  const router = useRouter()
+  const teacherName = profile?.name || user?.displayName || 'Faculty Member'
+  const todayStr = new Date().toISOString().split('T')[0]!
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+      return
+    }
+    if (!user) return
+
+    // 1. Total Students + Class Breakdown
+    const studentsQuery = query(collection(db, 'users'), where('role', '==', 'student'))
+    const unsubStudents = onSnapshot(studentsQuery, (snap) => {
+      const count = snap.size
+      setTotalStudents(count)
+
+      const classCountMap: Record<string, number> = {}
+      snap.forEach(d => {
+        const c = d.data().assignedClass || 'General'
+        classCountMap[c] = (classCountMap[c] || 0) + 1
+      })
+
+      if (count > 0) {
+        const slices: ClassSlice[] = Object.entries(classCountMap).map(([label, cCount], idx) => ({
+          label: label.length > 14 ? label.slice(0, 12) + '...' : label,
+          percent: Math.round((cCount / count) * 100),
+          color: pieColors[idx % pieColors.length]!,
+        }))
+        setClassData(slices)
+      }
+    })
+
+    // 2. Pending & Recent Leave Requests
+    const leaveQuery = query(collection(db, 'leaveRequests'))
+    const unsubLeave = onSnapshot(leaveQuery, (snap) => {
+      const all: LeaveRequest[] = []
+      let pendingCount = 0
+
+      snap.forEach(d => {
+        const data = d.data()
+        const statusNormalized =
+          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as any
+
+        if (data.status?.toLowerCase() === 'pending') {
+          pendingCount++
+        }
+
+        all.push({
+          id: d.id,
+          student: data.studentName || 'Student',
+          type: data.type || 'Leave',
+          date: data.startDate || 'Recent',
+          status: statusNormalized || 'Pending',
+        })
+      })
+
+      setPendingLeavesCount(pendingCount)
+      setRequests(all.slice(0, 5))
+    })
+
+    // 3. Attendance Today & Recent Days
+    const fetchAttendanceStats = async () => {
+      try {
+        const attSnap = await getDocs(collection(db, 'attendance'))
+        let pToday = 0
+        let aToday = 0
+
+        // Build last 6 days map
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        const recentDaysMap: Record<string, { present: number; absent: number; dayName: string }> = {}
+
+        const now = new Date()
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date(now)
+          d.setDate(d.getDate() - i)
+          const iso = d.toISOString().split('T')[0]!
+          const dName = dayNames[d.getDay()]!
+          recentDaysMap[iso] = { present: 0, absent: 0, dayName: dName }
+        }
+
+        attSnap.forEach(d => {
+          const data = d.data()
+          if (data.date === todayStr) {
+            if (data.status === 'present') pToday++
+            if (data.status === 'absent') aToday++
+          }
+
+          if (data.date && recentDaysMap[data.date]) {
+            if (data.status === 'present') recentDaysMap[data.date]!.present += 1
+            if (data.status === 'absent') recentDaysMap[data.date]!.absent += 1
+          }
+        })
+
+        setPresentToday(pToday)
+        setAbsentToday(aToday)
+
+        const barData: AttendanceDayStat[] = Object.values(recentDaysMap).map(item => ({
+          day: item.dayName,
+          present: item.present,
+          absent: item.absent,
+        }))
+
+        // If no attendance records exist yet, keep minimal default scale
+        setAttendanceData(barData.length > 0 ? barData : [
+          { day: 'Mon', present: 0, absent: 0 },
+          { day: 'Tue', present: 0, absent: 0 },
+          { day: 'Wed', present: 0, absent: 0 },
+          { day: 'Thu', present: 0, absent: 0 },
+          { day: 'Fri', present: 0, absent: 0 },
+          { day: 'Sat', present: 0, absent: 0 },
+        ])
+      } catch (err) {
+        console.error('Error fetching attendance overview stats:', err)
+      }
+    }
+
+    fetchAttendanceStats()
+
+    return () => {
+      unsubStudents()
+      unsubLeave()
+    }
+  }, [todayStr])
+
+  const handleStatusChange = async (id: string, newStatus: 'Approved' | 'Rejected') => {
+    try {
+      const docRef = doc(db, 'leaveRequests', id)
+      await updateDoc(docRef, {
+        status: newStatus.toLowerCase(),
+        reviewedBy: user?.uid || '',
+        reviewedAt: serverTimestamp(),
+      })
+    } catch (err) {
+      console.error('Error updating leave status from dashboard:', err)
+    }
   }
 
   // Calculate Pie slices
@@ -52,10 +207,13 @@ export default function TeacherDashboard() {
   const getCoordinatesForPercent = (percent: number): [string, string] => {
     const x = Math.cos(2 * Math.PI * percent)
     const y = Math.sin(2 * Math.PI * percent)
-    // Return formatted string values directly to ensure identical string representations on both server and client,
-    // avoiding floating-point precision discrepancies during serialization.
     return [x.toFixed(10), y.toFixed(10)]
   }
+
+  const presentPercentage =
+    totalStudents > 0 ? ((presentToday / totalStudents) * 100).toFixed(1) : '0'
+  const absentPercentage =
+    totalStudents > 0 ? ((absentToday / totalStudents) * 100).toFixed(1) : '0'
 
   return (
     <>
@@ -75,12 +233,12 @@ export default function TeacherDashboard() {
 
           <Link href="/teacher/profile" className="t2-profile-link" style={{ textDecoration: 'none' }}>
             <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=120&auto=format&fit=crop"
-              alt="Mr. David"
+              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=120&auto=format&fit=crop"
+              alt={teacherName}
               className="t2-avatar-img"
             />
             <div className="t2-profile-text">
-              <span className="t2-profile-name">Mr. David</span>
+              <span className="t2-profile-name">{teacherName}</span>
               <span className="t2-profile-role">Teacher</span>
             </div>
           </Link>
@@ -89,7 +247,7 @@ export default function TeacherDashboard() {
 
       {/* Main Content Area */}
       <div className="t2-content">
-        {/*  Top Row: 4 Stat Cards  */}
+        {/* Top Row: 4 Stat Cards */}
         <div className="t2-stats-grid">
           {/* Card 1: Total Students */}
           <div className="t2-stat-card">
@@ -98,8 +256,8 @@ export default function TeacherDashboard() {
             </div>
             <div className="t2-stat-info">
               <span className="t2-stat-title">Total Students</span>
-              <span className="t2-stat-num">120</span>
-              <span className="t2-stat-sub">All Students</span>
+              <span className="t2-stat-num">{totalStudents}</span>
+              <span className="t2-stat-sub">Enrolled Students</span>
             </div>
           </div>
 
@@ -110,8 +268,8 @@ export default function TeacherDashboard() {
             </div>
             <div className="t2-stat-info">
               <span className="t2-stat-title">Present Today</span>
-              <span className="t2-stat-num">105</span>
-              <span className="t2-stat-sub">87.5%</span>
+              <span className="t2-stat-num">{presentToday}</span>
+              <span className="t2-stat-sub">{presentPercentage}%</span>
             </div>
           </div>
 
@@ -122,8 +280,8 @@ export default function TeacherDashboard() {
             </div>
             <div className="t2-stat-info">
               <span className="t2-stat-title">Absent Today</span>
-              <span className="t2-stat-num">15</span>
-              <span className="t2-stat-sub">12.5%</span>
+              <span className="t2-stat-num">{absentToday}</span>
+              <span className="t2-stat-sub">{absentPercentage}%</span>
             </div>
           </div>
 
@@ -134,13 +292,13 @@ export default function TeacherDashboard() {
             </div>
             <div className="t2-stat-info">
               <span className="t2-stat-title">Pending Leaves</span>
-              <span className="t2-stat-num">8</span>
+              <span className="t2-stat-num">{pendingLeavesCount}</span>
               <span className="t2-stat-sub">Requests</span>
             </div>
           </div>
         </div>
 
-        {/* Middle Row: Attendance Overview + Students by Class  */}
+        {/* Middle Row: Attendance Overview + Students by Class */}
         <div className="t2-middle-grid">
           {/* Attendance Overview (Dual Bar Chart) */}
           <div className="t2-card">
@@ -178,8 +336,9 @@ export default function TeacherDashboard() {
                   const maxH = 150
                   const baseY = 170
 
-                  const presentH = (d.present / 100) * maxH
-                  const absentH = (d.absent / 100) * maxH
+                  const maxScale = Math.max(...attendanceData.map(a => Math.max(a.present, a.absent, 10)), 10)
+                  const presentH = (d.present / maxScale) * maxH
+                  const absentH = (d.absent / maxScale) * maxH
 
                   return (
                     <g key={d.day}>
@@ -188,7 +347,7 @@ export default function TeacherDashboard() {
                         x={groupX}
                         y={baseY - presentH}
                         width="14"
-                        height={presentH}
+                        height={Math.max(presentH, 2)}
                         rx="3"
                         fill="#10b981"
                       />
@@ -197,7 +356,7 @@ export default function TeacherDashboard() {
                         x={groupX + 18}
                         y={baseY - absentH}
                         width="14"
-                        height={absentH}
+                        height={Math.max(absentH, 2)}
                         rx="3"
                         fill="#ef4444"
                       />
@@ -273,7 +432,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Bottom Row: Recent Leave Requests + Quick Actions  */}
+        {/* Bottom Row: Recent Leave Requests + Quick Actions */}
         <div className="t2-bottom-grid">
           {/* Recent Leave Requests Table */}
           <div className="t2-card">
@@ -292,36 +451,44 @@ export default function TeacherDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {requests.map((row) => (
-                  <tr key={row.id}>
-                    <td className="t2-student-name">{row.student}</td>
-                    <td>{row.type}</td>
-                    <td className="t2-date-cell">{row.date}</td>
-                    <td>
-                      <span className={`t2-badge t2-badge-${row.status.toLowerCase()}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="t2-action-btns">
-                        <button
-                          className="t2-action-btn t2-action-check"
-                          onClick={() => handleStatusChange(row.id, 'Approved')}
-                          title="Approve"
-                        >
-                          <MdCheck size={16} />
-                        </button>
-                        <button
-                          className="t2-action-btn t2-action-close"
-                          onClick={() => handleStatusChange(row.id, 'Rejected')}
-                          title="Reject"
-                        >
-                          <MdClose size={16} />
-                        </button>
-                      </div>
+                {requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                      No recent leave requests.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  requests.map((row) => (
+                    <tr key={row.id}>
+                      <td className="t2-student-name">{row.student}</td>
+                      <td>{row.type}</td>
+                      <td className="t2-date-cell">{row.date}</td>
+                      <td>
+                        <span className={`t2-badge t2-badge-${row.status.toLowerCase()}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="t2-action-btns">
+                          <button
+                            className="t2-action-btn t2-action-check"
+                            onClick={() => handleStatusChange(row.id, 'Approved')}
+                            title="Approve"
+                          >
+                            <MdCheck size={16} />
+                          </button>
+                          <button
+                            className="t2-action-btn t2-action-close"
+                            onClick={() => handleStatusChange(row.id, 'Rejected')}
+                            title="Reject"
+                          >
+                            <MdClose size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

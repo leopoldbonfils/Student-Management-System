@@ -1,44 +1,161 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/lib/AuthContext'
 import {
   MdSearch, MdNotifications,
   MdHelp, MdUploadFile, MdChevronLeft, MdChevronRight,
-  MdVisibility, MdCheckCircle
+  MdVisibility, MdCheckCircle, MdError
 } from 'react-icons/md'
 
-const previousRequests = [
-  {
-    dateRange: 'Oct 24, 2023',
-    duration: 'Single day',
-    type: 'Personal Reason',
-    reason: 'Attending a family wedding out of state...',
-    status: 'Pending',
-  },
-  {
-    dateRange: 'Sep 12 - 14, 2023',
-    duration: '3 days',
-    type: 'Sick Leave',
-    reason: "Severe flu. Doctor's note attached in th...",
-    status: 'Approved',
-  },
-  {
-    dateRange: 'Aug 28, 2023',
-    duration: 'Single day',
-    type: 'Academic Activity',
-    reason: 'Local hackathon participation during c...',
-    status: 'Rejected',
-  },
-]
+interface PreviousLeaveRequest {
+  id: string
+  dateRange: string
+  duration: string
+  type: string
+  reason: string
+  status: 'Pending' | 'Approved' | 'Rejected'
+}
 
 export default function RequestLeavePage() {
-  const [dayType, setDayType]       = useState<'single' | 'multi'>('single')
-  const [leaveType, setLeaveType]   = useState('')
-  const [startDate, setStartDate]   = useState('')
-  const [endDate, setEndDate]       = useState('')
-  const [reason, setReason]         = useState('')
-  const [dragging, setDragging]     = useState(false)
+  const { user, profile, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [dayType, setDayType] = useState<'single' | 'multi'>('single')
+  const [leaveType, setLeaveType] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [reason, setReason] = useState('')
+  const [dragging, setDragging] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [previousRequests, setPreviousRequests] = useState<PreviousLeaveRequest[]>([])
+  const [approvedCount, setApprovedCount] = useState(0)
+  const [pendingCount, setPendingCount] = useState(0)
+  const [activePage, setPage] = useState(1)
+  const pageSize = 5
+
+  const studentInitial = (profile?.name || user?.displayName || 'S')[0]?.toUpperCase()
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+    if (!user) return
+
+    const q = query(
+      collection(db, 'leaveRequests'),
+      where('studentId', '==', user.uid)
+    )
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: PreviousLeaveRequest[] = []
+      let appCount = 0
+      let pendCount = 0
+
+      snapshot.forEach(d => {
+        const data = d.data()
+        const statusNormalized =
+          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as any
+
+        if (data.status?.toLowerCase() === 'approved') appCount++
+        if (data.status?.toLowerCase() === 'pending') pendCount++
+
+        const isMulti = data.startDate && data.endDate && data.startDate !== data.endDate
+        const dateRangeStr = isMulti ? `${data.startDate} - ${data.endDate}` : data.startDate || 'Single Day'
+
+        list.push({
+          id: d.id,
+          dateRange: dateRangeStr,
+          duration: isMulti ? 'Multiple days' : 'Single day',
+          type: data.type || 'Personal Reason',
+          reason: data.reason || '',
+          status: statusNormalized || 'Pending',
+        })
+      })
+
+      setApprovedCount(appCount)
+      setPendingCount(pendCount)
+      setPreviousRequests(list)
+    }, (err) => {
+      console.error('Error fetching leave requests:', err)
+    })
+
+    return () => unsubscribe()
+  }, [user])
+
+  const handleSubmit = async () => {
+    setErrorMsg(null)
+    setSuccessMsg(null)
+
+    if (!user) {
+      setErrorMsg('You must be signed in to submit a leave request.')
+      return
+    }
+    if (!leaveType) {
+      setErrorMsg('Please select a leave type.')
+      return
+    }
+    if (!startDate) {
+      setErrorMsg('Please select a start date.')
+      return
+    }
+    if (dayType === 'multi' && !endDate) {
+      setErrorMsg('Please select an end date for multi-day leave.')
+      return
+    }
+    if (!reason.trim()) {
+      setErrorMsg('Please provide a reason for your absence.')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await addDoc(collection(db, 'leaveRequests'), {
+        studentId: user.uid,
+        studentName: profile?.name || user.displayName || 'Student',
+        class: profile?.assignedClass || '',
+        type: leaveType === 'sick' ? 'Sick Leave' : leaveType === 'academic' ? 'Academic Activity' : leaveType === 'family' ? 'Family Emergency' : 'Personal Reason',
+        startDate,
+        endDate: dayType === 'multi' ? endDate : startDate,
+        reason: reason.trim(),
+        status: 'pending',
+        reviewedBy: null,
+        reviewedAt: null,
+        createdAt: serverTimestamp(),
+      })
+
+      setSuccessMsg('Leave request submitted successfully for teacher review.')
+      setLeaveType('')
+      setStartDate('')
+      setEndDate('')
+      setReason('')
+    } catch (err: any) {
+      console.error('Error creating leave request:', err)
+      setErrorMsg(err.message || 'Failed to submit leave request.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const totalPages = Math.ceil(previousRequests.length / pageSize) || 1
+  const currentPage = Math.min(activePage, totalPages)
+  const paginatedRequests = previousRequests.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  )
 
   return (
     <>
@@ -59,7 +176,7 @@ export default function RequestLeavePage() {
           <button className="db-icon-btn"><MdNotifications size={22} /></button>
           <button className="db-icon-btn"><MdHelp size={22} /></button>
           <Link href="/student/profile" style={{ textDecoration: 'none' }}>
-            <div className="db-avatar">A</div>
+            <div className="db-avatar">{studentInitial}</div>
           </Link>
         </div>
       </header>
@@ -74,9 +191,46 @@ export default function RequestLeavePage() {
           </div>
           <div className="sl-days-badge">
             <MdCheckCircle size={16} color="#10b981" />
-            Remaining Personal Days: <strong>3</strong>
+            Remaining Personal Days: <strong>{Math.max(0, 5 - approvedCount)}</strong>
           </div>
         </div>
+
+        {/* Notifications */}
+        {errorMsg && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#ef4444',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            marginBottom: '20px'
+          }}>
+            <MdError size={18} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        {successMsg && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#065f46',
+            backgroundColor: '#ecfdf5',
+            border: '1px solid #a7f3d0',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            marginBottom: '20px'
+          }}>
+            <MdCheckCircle size={18} color="#10b981" />
+            <span>{successMsg}</span>
+          </div>
+        )}
 
         {/* Two-column layout */}
         <div className="sl-grid">
@@ -172,9 +326,25 @@ export default function RequestLeavePage() {
 
             {/* Actions */}
             <div className="sl-actions">
-              <button className="sl-cancel-btn">Cancel</button>
-              <button className="sl-submit-btn">
-                ▶ Submit Request
+              <button
+                className="sl-cancel-btn"
+                onClick={() => {
+                  setLeaveType('')
+                  setStartDate('')
+                  setEndDate('')
+                  setReason('')
+                  setErrorMsg(null)
+                  setSuccessMsg(null)
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="sl-submit-btn"
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? 'Submitting...' : '▶ Submit Request'}
               </button>
             </div>
           </div>
@@ -199,12 +369,12 @@ export default function RequestLeavePage() {
               <p className="sl-summary-title">Semester Summary</p>
               <div className="sl-summary-row">
                 <div className="sl-summary-item">
-                  <span className="sl-summary-val sl-green">4</span>
+                  <span className="sl-summary-val sl-green">{approvedCount}</span>
                   <span className="sl-summary-sub">APPROVED<br/>Days total</span>
                 </div>
                 <div className="sl-summary-divider" />
                 <div className="sl-summary-item">
-                  <span className="sl-summary-val sl-orange">1</span>
+                  <span className="sl-summary-val sl-orange">{pendingCount}</span>
                   <span className="sl-summary-sub">PENDING<br/>Request</span>
                 </div>
               </div>
@@ -233,35 +403,58 @@ export default function RequestLeavePage() {
               </tr>
             </thead>
             <tbody>
-              {previousRequests.map((req, i) => (
-                <tr key={i}>
-                  <td>
-                    <p className="sl-date-main">{req.dateRange}</p>
-                    <p className="sl-date-dur">{req.duration}</p>
-                  </td>
-                  <td>{req.type}</td>
-                  <td className="sl-reason-cell">{req.reason}</td>
-                  <td>
-                    <span className={`sl-badge sl-badge-${req.status.toLowerCase()}`}>
-                      {req.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="sl-action-btn">
-                      <MdVisibility size={16} />
-                    </button>
+              {previousRequests.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: '32px', color: '#6b7280' }}>
+                    No previous leave requests found.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                paginatedRequests.map((req) => (
+                  <tr key={req.id}>
+                    <td>
+                      <p className="sl-date-main">{req.dateRange}</p>
+                      <p className="sl-date-dur">{req.duration}</p>
+                    </td>
+                    <td>{req.type}</td>
+                    <td className="sl-reason-cell">{req.reason}</td>
+                    <td>
+                      <span className={`sl-badge sl-badge-${req.status.toLowerCase()}`}>
+                        {req.status}
+                      </span>
+                    </td>
+                    <td>
+                      <button className="sl-action-btn">
+                        <MdVisibility size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
 
           {/* Pagination */}
           <div className="sl-pagination">
-            <span className="sl-page-info">Showing 1 to 3 of 5 results</span>
+            <span className="sl-page-info">
+              Showing {previousRequests.length > 0 ? (currentPage - 1) * pageSize + 1 : 0} to{' '}
+              {Math.min(currentPage * pageSize, previousRequests.length)} of {previousRequests.length} results
+            </span>
             <div className="sl-page-btns">
-              <button className="sl-page-btn"><MdChevronLeft size={18} /></button>
-              <button className="sl-page-btn"><MdChevronRight size={18} /></button>
+              <button
+                className="sl-page-btn"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                <MdChevronLeft size={18} />
+              </button>
+              <button
+                className="sl-page-btn"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                <MdChevronRight size={18} />
+              </button>
             </div>
           </div>
         </div>

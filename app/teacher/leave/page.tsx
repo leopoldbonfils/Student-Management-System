@@ -1,67 +1,147 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  collection,
+  query,
+  onSnapshot,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/lib/AuthContext'
 import {
   MdSearch, MdFilterList,
   MdCheckCircle, MdCancel, MdEvent
 } from 'react-icons/md'
 
-type ReqStatus = 'Pending' | 'Approved' | 'Rejected'
+interface LeaveRequestItem {
+  id: string
+  name: string
+  avatar: string
+  color: string
+  type: string
+  typeColor: string
+  dates: string
+  note: string
+  status: 'pending' | 'approved' | 'rejected'
+  detail?: string
+  reviewedAt?: any
+}
 
-const initialPending = [
-  {
-    id: 1,
-    name: 'Alex Chen',
-    avatar: 'AC',
-    color: '#6b7280',
-    avatarImg: true,
-    type: 'Medical',
-    typeColor: '#3b82f6',
-    dates: 'Oct 24 - Oct 26',
-    note: 'Recovering from seasonal flu. Doctor\'s note attached to portal profile.',
-    status: 'Pending' as ReqStatus,
-  },
-  {
-    id: 2,
-    name: 'Sarah Jenkins',
-    avatar: 'SJ',
-    color: '#4f46e5',
-    avatarImg: false,
-    type: 'Family',
-    typeColor: '#10b981',
-    dates: 'Oct 28 (Half Day)',
-    note: 'Attending sister\'s college graduation ceremony in the afternoon.',
-    status: 'Pending' as ReqStatus,
-  },
-]
+const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6']
 
-const approvedList = [
-  { name: 'David Kim',    avatar: 'DK', color: '#6366f1', detail: 'Dental Appt • Yesterday' },
-  { name: 'Maria Garcia', avatar: 'MG', color: '#10b981', detail: 'Medical • Oct 20' },
-]
+function getInitials(name: string): string {
+  if (!name) return 'ST'
+  const parts = name.trim().split(' ')
+  if (parts.length >= 2) {
+    return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+}
 
-const rejectedList = [
-  { name: 'Tyler Jones', avatar: 'TJ', color: '#ef4444', detail: 'Vacation • Oct 18', note: 'Missing parental form' },
-]
+function getColor(id: string): string {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colorPalette[Math.abs(hash) % colorPalette.length]!
+}
+
+function getTypeColor(type: string): string {
+  switch (type?.toLowerCase()) {
+    case 'medical':
+    case 'sick leave':
+    case 'sick':
+      return '#3b82f6'
+    case 'family':
+    case 'family emergency':
+      return '#10b981'
+    case 'academic':
+    case 'academic activity':
+      return '#8b5cf6'
+    default:
+      return '#f59e0b'
+  }
+}
 
 export default function TeacherLeaveRequests() {
-  const [requests, setRequests]   = useState(initialPending)
-  const [approved, setApproved]   = useState(approvedList)
-  const [rejected, setRejected]   = useState(rejectedList)
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [requests, setRequests] = useState<LeaveRequestItem[]>([])
+  const [approved, setApproved] = useState<LeaveRequestItem[]>([])
+  const [rejected, setRejected] = useState<LeaveRequestItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
 
-  const handleAction = (id: number, action: 'Approved' | 'Rejected') => {
-    const req = requests.find(r => r.id === id)
-    if (!req) return
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+    if (!user) return
 
-    setRequests(prev => prev.filter(r => r.id !== id))
+    const q = query(collection(db, 'leaveRequests'))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const all: LeaveRequestItem[] = snapshot.docs.map(d => {
+        const data = d.data()
+        const sName = data.studentName || 'Student'
+        const datesFormatted = data.startDate && data.endDate && data.startDate !== data.endDate
+          ? `${data.startDate} - ${data.endDate}`
+          : data.startDate || 'Single Day'
 
-    const entry = { name: req.name, avatar: req.avatar, color: req.color, detail: `${req.type} • ${req.dates}` }
-    if (action === 'Approved') {
-      setApproved(prev => [entry, ...prev])
-    } else {
-      setRejected(prev => [{ ...entry, note: 'Manually rejected' }, ...prev])
+        return {
+          id: d.id,
+          name: sName,
+          avatar: getInitials(sName),
+          color: getColor(data.studentId || d.id),
+          type: data.type || 'Leave',
+          typeColor: getTypeColor(data.type),
+          dates: datesFormatted,
+          note: data.reason || 'No description provided.',
+          status: (data.status || 'pending').toLowerCase() as any,
+          detail: `${data.type || 'Leave'} • ${datesFormatted}`,
+        }
+      })
+
+      const pendingList = all.filter(r => r.status === 'pending')
+      const approvedList = all.filter(r => r.status === 'approved')
+      const rejectedList = all.filter(r => r.status === 'rejected')
+
+      setRequests(pendingList)
+      setApproved(approvedList)
+      setRejected(rejectedList)
+      setLoading(false)
+    }, (err) => {
+      console.error('Error fetching leave requests:', err)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  const handleAction = async (id: string, action: 'approved' | 'rejected') => {
+    try {
+      const docRef = doc(db, 'leaveRequests', id)
+      await updateDoc(docRef, {
+        status: action,
+        reviewedBy: user?.uid || '',
+        reviewedAt: serverTimestamp(),
+      })
+    } catch (err) {
+      console.error(`Error updating leave request to ${action}:`, err)
+      alert(`Failed to ${action} leave request.`)
     }
   }
+
+  const filteredRequests = requests.filter(r =>
+    search === '' ||
+    r.name.toLowerCase().includes(search.toLowerCase()) ||
+    r.type.toLowerCase().includes(search.toLowerCase()) ||
+    r.note.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <>
@@ -69,7 +149,11 @@ export default function TeacherLeaveRequests() {
       <header className="td-topbar">
         <div className="sm-header-search">
           <MdSearch size={16} color="#9ca3af" />
-          <input placeholder="Search requests..." />
+          <input
+            placeholder="Search requests..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
       </header>
 
@@ -101,50 +185,54 @@ export default function TeacherLeaveRequests() {
               )}
             </div>
 
-            {requests.length === 0 && (
+            {loading ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: '#6b7280' }}>
+                Loading leave requests...
+              </div>
+            ) : filteredRequests.length === 0 ? (
               <div className="lr-empty">
                 <MdCheckCircle size={32} color="#10b981" />
                 <p>All caught up! No pending requests.</p>
               </div>
-            )}
-
-            {requests.map((req) => (
-              <div key={req.id} className="lr-request-item">
-                <div className="lr-request-top">
-                  <div className="lr-student-info">
-                    <div className="lr-avatar" style={{ background: req.color }}>
-                      {req.avatar}
-                    </div>
-                    <div>
-                      <p className="lr-student-name">{req.name}</p>
-                      <div className="lr-meta">
-                        <span className="lr-type-badge" style={{ background: `${req.typeColor}20`, color: req.typeColor }}>
-                          {req.type}
-                        </span>
-                        <span className="lr-date">
-                          <MdEvent size={12} /> {req.dates}
-                        </span>
+            ) : (
+              filteredRequests.map((req) => (
+                <div key={req.id} className="lr-request-item">
+                  <div className="lr-request-top">
+                    <div className="lr-student-info">
+                      <div className="lr-avatar" style={{ background: req.color }}>
+                        {req.avatar}
+                      </div>
+                      <div>
+                        <p className="lr-student-name">{req.name}</p>
+                        <div className="lr-meta">
+                          <span className="lr-type-badge" style={{ background: `${req.typeColor}20`, color: req.typeColor }}>
+                            {req.type}
+                          </span>
+                          <span className="lr-date">
+                            <MdEvent size={12} /> {req.dates}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <p className="lr-note">{req.note}</p>
+                  <div className="lr-actions">
+                    <button
+                      className="lr-approve-btn"
+                      onClick={() => handleAction(req.id, 'approved')}
+                    >
+                      <MdCheckCircle size={15} /> Approve
+                    </button>
+                    <button
+                      className="lr-reject-btn"
+                      onClick={() => handleAction(req.id, 'rejected')}
+                    >
+                      <MdCancel size={15} /> Reject
+                    </button>
+                  </div>
                 </div>
-                <p className="lr-note">{req.note}</p>
-                <div className="lr-actions">
-                  <button
-                    className="lr-approve-btn"
-                    onClick={() => handleAction(req.id, 'Approved')}
-                  >
-                    <MdCheckCircle size={15} /> Approve
-                  </button>
-                  <button
-                    className="lr-reject-btn"
-                    onClick={() => handleAction(req.id, 'Rejected')}
-                  >
-                    <MdCancel size={15} /> Reject
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {/* Right column */}
@@ -155,15 +243,19 @@ export default function TeacherLeaveRequests() {
                 <MdCheckCircle size={16} color="#10b981" />
                 <span>Recently Approved</span>
               </div>
-              {approved.map((a, i) => (
-                <div key={i} className="lr-side-item">
-                  <div className="lr-side-avatar" style={{ background: a.color }}>{a.avatar}</div>
-                  <div>
-                    <p className="lr-side-name">{a.name}</p>
-                    <p className="lr-side-detail">{a.detail}</p>
+              {approved.length === 0 ? (
+                <p style={{ padding: '16px', fontSize: '13px', color: '#9ca3af', margin: 0 }}>No approved requests yet.</p>
+              ) : (
+                approved.slice(0, 5).map((a) => (
+                  <div key={a.id} className="lr-side-item">
+                    <div className="lr-side-avatar" style={{ background: a.color }}>{a.avatar}</div>
+                    <div>
+                      <p className="lr-side-name">{a.name}</p>
+                      <p className="lr-side-detail">{a.detail}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Recently Rejected */}
@@ -172,18 +264,22 @@ export default function TeacherLeaveRequests() {
                 <MdCancel size={16} color="#ef4444" />
                 <span>Recently Rejected</span>
               </div>
-              {rejected.map((r, i) => (
-                <div key={i} className="lr-side-item">
-                  <div className="lr-side-avatar" style={{ background: r.color }}>{r.avatar}</div>
-                  <div>
-                    <p className="lr-side-name">{r.name}</p>
-                    <p className="lr-side-detail">{r.detail}</p>
-                    {'note' in r && r.note && (
-                      <p className="lr-side-note">{r.note}</p>
-                    )}
+              {rejected.length === 0 ? (
+                <p style={{ padding: '16px', fontSize: '13px', color: '#9ca3af', margin: 0 }}>No rejected requests yet.</p>
+              ) : (
+                rejected.slice(0, 5).map((r) => (
+                  <div key={r.id} className="lr-side-item">
+                    <div className="lr-side-avatar" style={{ background: r.color }}>{r.avatar}</div>
+                    <div>
+                      <p className="lr-side-name">{r.name}</p>
+                      <p className="lr-side-detail">{r.detail}</p>
+                      {r.note && (
+                        <p className="lr-side-note">{r.note}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

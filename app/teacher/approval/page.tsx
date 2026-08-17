@@ -1,11 +1,5 @@
-import React from 'react'
+import { redirect } from 'next/navigation'
 
-const page = () => {
-  return (
-    <div>
-      
-    </div>
-  )
+export default function TeacherApprovalPage() {
+  redirect('/teacher/leave')
 }
-
-export default page

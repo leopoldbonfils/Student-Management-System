@@ -1,13 +1,55 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
+import { useAuth } from '@/lib/AuthContext'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import {
   MdEdit, MdSearch,
   MdSchool, MdEmail, MdPerson, MdLocationOn,
-  MdCheckCircle, MdClass, MdMap, MdSupervisorAccount
+  MdCheckCircle, MdClass, MdMap, MdSupervisorAccount,
+  MdSave, MdCancel
 } from 'react-icons/md'
 
 export default function StudentProfile() {
+  const { user, profile } = useAuth()
+  const [editing, setEditing] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [address, setAddress] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const studentName = profile?.name || user?.displayName || 'Student'
+  const studentEmail = profile?.email || user?.email || 'student@eduportal.edu'
+  const studentId = profile?.studentId || user?.uid?.slice(0, 8).toUpperCase() || 'STU-2024-001'
+  const studentClass = profile?.assignedClass || 'Grade 10 - Section A'
+  const studentPhone = profile?.phone || '+1 (555) 349-8120'
+  const studentDob = profile?.dob || 'March 22, 2008'
+  const studentGender = profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Student'
+  const studentAddress = profile?.address || '742 Evergreen Terrace, Seattle, WA 98116'
+
+  const handleStartEdit = () => {
+    setPhone(studentPhone)
+    setAddress(studentAddress)
+    setEditing(true)
+  }
+
+  const handleSave = async () => {
+    if (!user) return
+    setSaving(true)
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        phone,
+        address,
+      })
+      setEditing(false)
+    } catch (err) {
+      console.error('Error updating student profile:', err)
+      alert('Failed to update profile.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -27,7 +69,7 @@ export default function StudentProfile() {
           <span className="pf-crumb-active">Student Profile</span>
         </div>
 
-        <h1 className="pf-page-title">Alex Johnson Profile</h1>
+        <h1 className="pf-page-title">{studentName} Profile</h1>
 
         {/* Hero Banner Card */}
         <div className="pf-hero-card">
@@ -35,7 +77,7 @@ export default function StudentProfile() {
             <div className="pf-avatar-wrapper">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" 
-                alt="Alex Johnson" 
+                alt={studentName}
                 className="pf-avatar-img"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none'
@@ -44,12 +86,12 @@ export default function StudentProfile() {
             </div>
 
             <div className="pf-hero-info">
-              <h2 className="pf-name">Alex Johnson</h2>
+              <h2 className="pf-name">{studentName}</h2>
               <p className="pf-role">
                 <MdSchool size={14} className="pf-role-icon" />
-                <span>Grade 10 - Section A</span>
+                <span>{studentClass}</span>
                 <span className="pf-dot">•</span>
-                <span>Science Stream</span>
+                <span>Active Stream</span>
               </p>
 
               <div className="pf-badge-group">
@@ -57,16 +99,38 @@ export default function StudentProfile() {
                   <MdCheckCircle size={13} /> Active Student
                 </span>
                 <span className="pf-badge-email">
-                  <MdEmail size={13} /> alex.johnson@eduportal.edu
+                  <MdEmail size={13} /> {studentEmail}
                 </span>
               </div>
             </div>
           </div>
 
-          <button className="pf-edit-btn">
-            <MdEdit size={16} />
-            <span>Edit Profile</span>
-          </button>
+          {!editing ? (
+            <button className="pf-edit-btn" onClick={handleStartEdit}>
+              <MdEdit size={16} />
+              <span>Edit Profile</span>
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="pf-edit-btn"
+                style={{ background: '#10b981', color: '#fff' }}
+                onClick={handleSave}
+                disabled={saving}
+              >
+                <MdSave size={16} />
+                <span>{saving ? 'Saving...' : 'Save'}</span>
+              </button>
+              <button
+                className="pf-edit-btn"
+                style={{ background: '#f3f4f6', color: '#374151' }}
+                onClick={() => setEditing(false)}
+              >
+                <MdCancel size={16} />
+                <span>Cancel</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Lower Grid Details */}
@@ -83,23 +147,32 @@ export default function StudentProfile() {
               <div className="pf-fields-grid">
                 <div className="pf-field">
                   <span className="pf-label">FULL NAME</span>
-                  <span className="pf-value">Alex William Johnson</span>
+                  <span className="pf-value">{studentName}</span>
                 </div>
                 <div className="pf-field">
                   <span className="pf-label">EMAIL ADDRESS</span>
-                  <span className="pf-value pf-link">alex.johnson@eduportal.edu</span>
+                  <span className="pf-value pf-link">{studentEmail}</span>
                 </div>
                 <div className="pf-field">
                   <span className="pf-label">PHONE NUMBER</span>
-                  <span className="pf-value">+1 (555) 349-8120</span>
+                  {editing ? (
+                    <input
+                      className="as-input"
+                      style={{ marginTop: '4px', fontSize: '13px' }}
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                    />
+                  ) : (
+                    <span className="pf-value">{studentPhone}</span>
+                  )}
                 </div>
                 <div className="pf-field">
                   <span className="pf-label">DATE OF BIRTH</span>
-                  <span className="pf-value">March 22, 2008</span>
+                  <span className="pf-value">{studentDob}</span>
                 </div>
                 <div className="pf-field">
                   <span className="pf-label">GENDER</span>
-                  <span className="pf-value">Male</span>
+                  <span className="pf-value">{studentGender}</span>
                 </div>
               </div>
             </div>
@@ -115,14 +188,21 @@ export default function StudentProfile() {
                 <div className="pf-address-icon">
                   <MdMap size={20} />
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <span className="pf-label">RESIDENTIAL ADDRESS</span>
-                  <div className="pf-address-text">
-                    <p>742 Evergreen Terrace</p>
-                    <p>West Seattle</p>
-                    <p>Seattle, WA 98116</p>
-                    <p>United States</p>
-                  </div>
+                  {editing ? (
+                    <textarea
+                      className="as-textarea"
+                      style={{ marginTop: '4px', fontSize: '13px', width: '100%' }}
+                      rows={3}
+                      value={address}
+                      onChange={e => setAddress(e.target.value)}
+                    />
+                  ) : (
+                    <div className="pf-address-text">
+                      <p>{studentAddress}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -140,22 +220,22 @@ export default function StudentProfile() {
               <div className="pf-fields-grid">
                 <div className="pf-field">
                   <span className="pf-label">Student ID</span>
-                  <span className="pf-value pf-bold">STU-2024-001</span>
+                  <span className="pf-value pf-bold">{studentId}</span>
                 </div>
                 <div className="pf-field">
-                  <span className="pf-label">Enrollment Date</span>
-                  <span className="pf-value">September 01, 2023</span>
+                  <span className="pf-label">Class Assignment</span>
+                  <span className="pf-value">{studentClass}</span>
                 </div>
                 <div className="pf-field pf-full">
                   <span className="pf-label">ACADEMIC ADVISOR</span>
                   <div className="pf-qual-row">
                     <MdSupervisorAccount size={16} className="pf-qual-icon" />
-                    <span className="pf-value">Dr. Sarah Mitchell (Mathematics Dept.)</span>
+                    <span className="pf-value">Faculty Department</span>
                   </div>
                 </div>
                 <div className="pf-field pf-full">
                   <span className="pf-label">STREAM & MAJOR</span>
-                  <span className="pf-value">General High School Science & Mathematics</span>
+                  <span className="pf-value">High School Academic Program</span>
                 </div>
               </div>
             </div>
@@ -167,29 +247,25 @@ export default function StudentProfile() {
                   <MdClass size={18} className="pf-head-icon" />
                   <h3 className="pf-card-title">Enrolled Courses</h3>
                 </div>
-                <span className="pf-count-badge">5 Total</span>
+                <span className="pf-count-badge">4 Total</span>
               </div>
 
               <div className="pf-classes-list">
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-blue" />
-                  <span>Grade 10-A Math</span>
+                  <span>Mathematics</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-green" />
-                  <span>Physics 101</span>
+                  <span>Science</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-blue" />
-                  <span>Chemistry Lab</span>
-                </div>
-                <div className="pf-class-pill">
-                  <span className="pf-dot pf-dot-purple" />
                   <span>English Literature</span>
                 </div>
                 <div className="pf-class-pill">
-                  <span className="pf-dot pf-dot-green" />
-                  <span>World History</span>
+                  <span className="pf-dot pf-dot-purple" />
+                  <span>History</span>
                 </div>
               </div>
             </div>

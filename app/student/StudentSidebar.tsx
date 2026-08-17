@@ -12,9 +12,9 @@ import { PiGraduationCapFill } from 'react-icons/pi'
 const navItems = [
   { name: 'Dashboard', Icon: MdDashboard, href: '/student/dashboard' },
   { name: 'Students', Icon: MdPeople, href: '/student/dashboard' },
-  { name: 'Attendance', Icon: MdCalendarToday, href: '/student/leave' },
+  { name: 'Attendance', Icon: MdCalendarToday, href: '/student/attendance' },
+  { name: 'Ask Leave', Icon: MdSchedule, href: '/student/leave' },
   { name: 'Grades', Icon: MdGrade, href: '/student/report' },
-  { name: 'Schedule', Icon: MdSchedule, href: '/student/dashboard' },
 ]
 
 export default function StudentSidebar() {
@@ -38,7 +38,7 @@ export default function StudentSidebar() {
       {/* Nav List */}
       <nav className="db-nav">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.name === 'Attendance' && pathname?.startsWith('/student/leave'))
+          const isActive = pathname === item.href
           return (
             <Link
               key={item.name}

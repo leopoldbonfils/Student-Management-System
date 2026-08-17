@@ -2,12 +2,15 @@
 
 import React, { useState, useRef } from 'react'
 import {
-  MdSearch, MdCameraAlt, MdSave
+  MdSearch, MdCameraAlt, MdSave, MdCheckCircle, MdError
 } from 'react-icons/md'
 
 export default function AddStudent() {
   const [photo, setPhoto] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
@@ -23,6 +26,8 @@ export default function AddStudent() {
 
   const handleChange = (field: string, value: string) => {
     setSaved(false)
+    setErrorMessage(null)
+    setSuccessMessage(null)
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -34,8 +39,55 @@ export default function AddStudent() {
     }
   }
 
-  const handleSave = () => {
-    setSaved(true)
+  const handleSave = async () => {
+    setErrorMessage(null)
+    setSuccessMessage(null)
+
+    if (!form.fullName.trim()) {
+      setErrorMessage('Please enter the student\'s full name.')
+      return
+    }
+    if (!form.email.trim()) {
+      setErrorMessage('Please enter a valid email address.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/create-student', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to register student.')
+      }
+
+      setSaved(true)
+      setSuccessMessage('Student created successfully. Login credentials have been sent to the student\'s email.')
+      // Reset form
+      setForm({
+        fullName: '',
+        gender: '',
+        dob: '',
+        studentId: '',
+        assignedClass: '',
+        email: '',
+        phone: '',
+        address: '',
+      })
+      setPhoto(null)
+    } catch (err: any) {
+      console.error('Error saving student:', err)
+      setErrorMessage(err.message || 'An error occurred while creating the student.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -58,6 +110,43 @@ export default function AddStudent() {
             Enter the details below to <span>register a new student</span> in the system.
           </p>
         </div>
+
+        {/* Notifications / Alerts */}
+        {errorMessage && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#ef4444',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            marginBottom: '20px'
+          }}>
+            <MdError size={18} />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {successMessage && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: '#065f46',
+            backgroundColor: '#ecfdf5',
+            border: '1px solid #a7f3d0',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '14px',
+            marginBottom: '20px'
+          }}>
+            <MdCheckCircle size={18} color="#10b981" />
+            <span>{successMessage}</span>
+          </div>
+        )}
 
         {/* Top row: Photo + Personal Info */}
         <div className="as-top-row">
@@ -149,12 +238,13 @@ export default function AddStudent() {
                 onChange={e => handleChange('assignedClass', e.target.value)}
               >
                 <option value="">Select Class</option>
-                <option value="grade10a">Grade 10 - A</option>
-                <option value="grade10b">Grade 10 - B</option>
-                <option value="grade9a">Grade 9 - A</option>
-                <option value="grade9b">Grade 9 - B</option>
-                <option value="grade11sci">Grade 11 - Science</option>
-                <option value="grade11arts">Grade 11 - Arts</option>
+                <option value="Grade 10 - Mathematics">Grade 10 - Mathematics</option>
+                <option value="Grade 10 - A">Grade 10 - A</option>
+                <option value="Grade 10 - B">Grade 10 - B</option>
+                <option value="Grade 9 - A">Grade 9 - A</option>
+                <option value="Grade 9 - B">Grade 9 - B</option>
+                <option value="Grade 11 - Science">Grade 11 - Science</option>
+                <option value="Grade 11 - Arts">Grade 11 - Arts</option>
               </select>
             </div>
           </div>
@@ -200,13 +290,33 @@ export default function AddStudent() {
 
         {/* Actions */}
         <div className="as-footer">
-          <button className="sl-cancel-btn">Cancel</button>
+          <button
+            className="sl-cancel-btn"
+            onClick={() => {
+              setForm({
+                fullName: '',
+                gender: '',
+                dob: '',
+                studentId: '',
+                assignedClass: '',
+                email: '',
+                phone: '',
+                address: '',
+              })
+              setPhoto(null)
+              setErrorMessage(null)
+              setSuccessMessage(null)
+            }}
+          >
+            Cancel
+          </button>
           <button
             className={`as-save-btn ${saved ? 'as-saved' : ''}`}
             onClick={handleSave}
+            disabled={loading}
           >
             <MdSave size={16} />
-            {saved ? 'Student Saved!' : 'Save Student'}
+            {loading ? 'Registering...' : saved ? 'Student Saved!' : 'Save Student'}
           </button>
         </div>
       </div>

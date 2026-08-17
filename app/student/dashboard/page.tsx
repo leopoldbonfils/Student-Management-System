@@ -1,28 +1,112 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+} from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { useAuth } from '@/lib/AuthContext'
 import {
   MdMenu, MdNotifications, MdKeyboardArrowDown,
   MdGroups, MdFlightTakeoff, MdDescription, MdVerified
 } from 'react-icons/md'
 
-const leaveRequests = [
-  { date: 'Aug 10, 2025', reason: 'Sick Leave',       status: 'Pending' },
-  { date: 'Aug 5, 2025',  reason: 'Family Function',  status: 'Approved' },
-  { date: 'Jul 28, 2025', reason: 'Personal Work',    status: 'Approved' },
-]
+interface StudentLeaveRecord {
+  date: string
+  reason: string
+  status: 'Pending' | 'Approved' | 'Rejected'
+}
 
 export default function StudentDashboard() {
+  const { user, profile, loading: authLoading } = useAuth()
+  const router = useRouter()
+  const [attendancePercent, setAttendancePercent] = useState(100)
+  const [leavesTaken, setLeavesTaken] = useState(0)
+  const [pendingLeaves, setPendingLeaves] = useState(0)
+  const [leaveRequests, setLeaveRequests] = useState<StudentLeaveRecord[]>([])
+  const [presentDays, setPresentDays] = useState(0)
+  const [absentDays, setAbsentDays] = useState(0)
+
+  const studentName = profile?.name || user?.displayName || 'Student'
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+      return
+    }
+    if (!user) return
+
+    // 1. Fetch Student Attendance
+    const attQuery = query(collection(db, 'attendance'), where('studentId', '==', user.uid))
+    const unsubAtt = onSnapshot(attQuery, (snap) => {
+      let p = 0
+      let a = 0
+      let l = 0
+
+      snap.forEach(d => {
+        const data = d.data()
+        if (data.status === 'present') p++
+        else if (data.status === 'absent') a++
+        else if (data.status === 'late') l++
+      })
+
+      const total = p + a + l
+      setPresentDays(p + l)
+      setAbsentDays(a)
+
+      if (total > 0) {
+        setAttendancePercent(Math.round(((p + l) / total) * 100))
+      } else {
+        setAttendancePercent(100)
+      }
+    })
+
+    // 2. Fetch Student Leave Requests
+    const leaveQuery = query(collection(db, 'leaveRequests'), where('studentId', '==', user.uid))
+    const unsubLeave = onSnapshot(leaveQuery, (snap) => {
+      const records: StudentLeaveRecord[] = []
+      let approvedCount = 0
+      let pendingCount = 0
+
+      snap.forEach(d => {
+        const data = d.data()
+        const statusNormalized =
+          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as any
+
+        if (data.status?.toLowerCase() === 'approved') approvedCount++
+        if (data.status?.toLowerCase() === 'pending') pendingCount++
+
+        records.push({
+          date: data.startDate || 'Recent',
+          reason: data.reason || data.type || 'Personal',
+          status: statusNormalized || 'Pending',
+        })
+      })
+
+      setLeavesTaken(approvedCount)
+      setPendingLeaves(pendingCount)
+      setLeaveRequests(records.slice(0, 5))
+    })
+
+    return () => {
+      unsubAtt()
+      unsubLeave()
+    }
+  }, [user])
+
   const radius = 64
   const strokeWidth = 18
   const circumference = 2 * Math.PI * radius
-  const presentPercent = 0.92
-  const absentPercent = 0.08
+  const presentFraction = attendancePercent / 100
+  const absentFraction = 1 - presentFraction
 
-  // Dash calculations for donut
-  const presentDash = circumference * presentPercent
-  const absentDash = circumference * absentPercent
+  const presentDash = circumference * presentFraction
+  const absentDash = circumference * absentFraction
 
   return (
     <>
@@ -42,11 +126,11 @@ export default function StudentDashboard() {
           <Link href="/student/profile" className="s2-profile-link" style={{ textDecoration: 'none' }}>
             <img
               src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=120&auto=format&fit=crop"
-              alt="John Doe"
+              alt={studentName}
               className="s2-avatar-img"
             />
             <div className="s2-profile-text">
-              <span className="s2-profile-name">John Doe</span>
+              <span className="s2-profile-name">{studentName}</span>
               <span className="s2-profile-role">Student</span>
             </div>
             <MdKeyboardArrowDown size={18} color="#9ca3af" />
@@ -58,11 +142,11 @@ export default function StudentDashboard() {
       <div className="s2-content">
         {/* Welcome Section */}
         <div className="s2-welcome-row">
-          <h1 className="s2-title">Welcome back, John! 👋</h1>
+          <h1 className="s2-title">Welcome back, {studentName.split(' ')[0]}! 👋</h1>
           <p className="s2-sub">Here is your academic overview</p>
         </div>
 
-        {/* ── Top Row: 4 Stat Cards ── */}
+        {/* Top Row: 4 Stat Cards */}
         <div className="s2-stats-grid">
           {/* Card 1: Attendance */}
           <div className="s2-stat-card">
@@ -71,8 +155,8 @@ export default function StudentDashboard() {
             </div>
             <div className="s2-stat-info">
               <span className="s2-stat-title">Attendance</span>
-              <span className="s2-stat-num">92%</span>
-              <span className="s2-stat-sub">This Month</span>
+              <span className="s2-stat-num">{attendancePercent}%</span>
+              <span className="s2-stat-sub">Overall Record</span>
             </div>
           </div>
 
@@ -83,8 +167,8 @@ export default function StudentDashboard() {
             </div>
             <div className="s2-stat-info">
               <span className="s2-stat-title">Leaves Taken</span>
-              <span className="s2-stat-num">2</span>
-              <span className="s2-stat-sub">This Month</span>
+              <span className="s2-stat-num">{leavesTaken}</span>
+              <span className="s2-stat-sub">Approved</span>
             </div>
           </div>
 
@@ -95,20 +179,20 @@ export default function StudentDashboard() {
             </div>
             <div className="s2-stat-info">
               <span className="s2-stat-title">Pending Leaves</span>
-              <span className="s2-stat-num">1</span>
-              <span className="s2-stat-sub">Pending</span>
+              <span className="s2-stat-num">{pendingLeaves}</span>
+              <span className="s2-stat-sub">Pending Review</span>
             </div>
           </div>
 
-          {/* Card 4: Average Grade */}
+          {/* Card 4: Academic Standing */}
           <div className="s2-stat-card">
             <div className="s2-stat-icon-wrap s2-icon-blue">
               <MdVerified size={24} />
             </div>
             <div className="s2-stat-info">
-              <span className="s2-stat-title">Average Grade</span>
-              <span className="s2-stat-num">A-</span>
-              <span className="s2-stat-sub">This Term</span>
+              <span className="s2-stat-title">Academic Standing</span>
+              <span className="s2-stat-num">Good</span>
+              <span className="s2-stat-sub">Active Student</span>
             </div>
           </div>
         </div>
@@ -160,7 +244,7 @@ export default function StudentDashboard() {
                     fontWeight="700"
                     fill="#111827"
                   >
-                    92%
+                    {attendancePercent}%
                   </text>
                   <text
                     x="85"
@@ -182,7 +266,7 @@ export default function StudentDashboard() {
                     <span className="s2-dot s2-dot-green" />
                     <span className="s2-legend-label">Present</span>
                   </div>
-                  <span className="s2-legend-val">92%</span>
+                  <span className="s2-legend-val">{attendancePercent}%</span>
                 </div>
 
                 <div className="s2-legend-row">
@@ -190,7 +274,7 @@ export default function StudentDashboard() {
                     <span className="s2-dot s2-dot-red" />
                     <span className="s2-legend-label">Absent</span>
                   </div>
-                  <span className="s2-legend-val">8%</span>
+                  <span className="s2-legend-val">{100 - attendancePercent}%</span>
                 </div>
               </div>
             </div>
@@ -204,17 +288,25 @@ export default function StudentDashboard() {
 
             <table className="s2-table">
               <tbody>
-                {leaveRequests.map((row, i) => (
-                  <tr key={i}>
-                    <td className="s2-date-cell">{row.date}</td>
-                    <td className="s2-reason-cell">{row.reason}</td>
-                    <td className="s2-status-cell">
-                      <span className={`s2-badge s2-badge-${row.status.toLowerCase()}`}>
-                        {row.status}
-                      </span>
+                {leaveRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
+                      No leave requests submitted yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  leaveRequests.map((row, i) => (
+                    <tr key={i}>
+                      <td className="s2-date-cell">{row.date}</td>
+                      <td className="s2-reason-cell">{row.reason}</td>
+                      <td className="s2-status-cell">
+                        <span className={`s2-badge s2-badge-${row.status.toLowerCase()}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
 
