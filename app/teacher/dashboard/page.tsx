@@ -59,9 +59,10 @@ export default function TeacherDashboard() {
     { day: 'Sat', present: 0, absent: 0 },
   ])
   const [classData, setClassData] = useState<ClassSlice[]>([
-    { label: 'Grade 10', percent: 40, color: '#3b82f6' },
-    { label: 'Grade 9', percent: 30, color: '#10b981' },
-    { label: 'Grade 11', percent: 30, color: '#f59e0b' },
+    { label: 'React Native', percent: 25, color: '#3b82f6' },
+    { label: 'Django', percent: 25, color: '#10b981' },
+    { label: 'cybersecurity', percent: 25, color: '#f59e0b' },
+    { label: 'UI/UX Design', percent: 25, color: '#8b5cf6' },
   ])
 
   const router = useRouter()

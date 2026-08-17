@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  MdDashboard, MdPeople, MdCalendarToday, MdGrade,
+  MdDashboard, MdPeople, MdCalendarToday,
   MdSchedule, MdSettings, MdLogout
 } from 'react-icons/md'
 import { PiGraduationCapFill } from 'react-icons/pi'
@@ -14,7 +14,6 @@ const navItems = [
   { name: 'Students', Icon: MdPeople, href: '/student/dashboard' },
   { name: 'Attendance', Icon: MdCalendarToday, href: '/student/attendance' },
   { name: 'Ask Leave', Icon: MdSchedule, href: '/student/leave' },
-  { name: 'Grades', Icon: MdGrade, href: '/student/report' },
 ]
 
 export default function StudentSidebar() {

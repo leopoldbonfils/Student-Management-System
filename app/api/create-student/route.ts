@@ -4,7 +4,7 @@ import { sendStudentCredentials } from '@/lib/email'
 import crypto from 'crypto'
 
 function generateTemporaryPassword(length = 10): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$'
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz'
   let password = ''
   const bytes = crypto.randomBytes(length)
   for (let i = 0; i < length; i++) {

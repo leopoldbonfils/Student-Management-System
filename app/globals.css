@@ -1721,6 +1721,29 @@ form {
   background: #fafafa;
 }
 
+.at-table-body {
+  max-height: 240px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.at-table-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.at-table-body::-webkit-scrollbar-track {
+  background: #f9fafb;
+}
+
+.at-table-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.at-table-body::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 .at-row {
   display: flex;
   align-items: center;

@@ -342,7 +342,6 @@ export default function StudentsManagement() {
                 <option value="Django">Django</option>
                 <option value="cybersecurity">cybersecurity</option>
                 <option value="UI/UX Design">UI/UX Design</option>
-                <option value="Grade 10 - Mathematics">Grade 10 - Mathematics</option>
               </select>
             </div>
 
@@ -624,7 +623,6 @@ export default function StudentsManagement() {
                     <option value="Django">Django</option>
                     <option value="cybersecurity">cybersecurity</option>
                     <option value="UI/UX Design">UI/UX Design</option>
-                    <option value="Grade 10 - Mathematics">Grade 10 - Mathematics</option>
                   </select>
                 </div>
                 <div>

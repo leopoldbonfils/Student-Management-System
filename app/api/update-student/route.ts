@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
       dob,
       address,
       status,
+      mustChangePassword,
     } = await req.json()
 
     if (!uid) {
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
     if (dob !== undefined) updatePayload.dob = dob
     if (address !== undefined) updatePayload.address = address.trim()
     if (status !== undefined) updatePayload.status = status
+    if (mustChangePassword !== undefined) updatePayload.mustChangePassword = mustChangePassword
 
     // 1. Update in Firestore
     await adminDb.collection('users').doc(uid).update(updatePayload)

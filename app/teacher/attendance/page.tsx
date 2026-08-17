@@ -15,7 +15,7 @@ import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import { MdSearch, MdSave } from 'react-icons/md'
 
-type AttStatus = 'Present' | 'Absent' | 'Late' | null
+type AttStatus = 'Present' | 'Absent' | 'Late'
 
 interface StudentAttendanceItem {
   id: string
@@ -23,10 +23,11 @@ interface StudentAttendanceItem {
   avatar: string
   color: string
   name: string
+  assignedClass?: string
   status: AttStatus
 }
 
-const colorPalette = ['#10b981', '#6366f1', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6']
+const colorPalette = ['#6366f1', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#14b8a6']
 
 function getInitials(name: string): string {
   if (!name) return 'ST'
@@ -49,7 +50,7 @@ export default function MarkAttendance() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const todayStr = new Date().toISOString().split('T')[0]!
-  const [classVal, setClassVal] = useState('React Native')
+  const [classVal, setClassVal] = useState('') // Default: All Classes
   const [dateVal, setDateVal] = useState(todayStr)
   const [students, setStudents] = useState<StudentAttendanceItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,7 +67,7 @@ export default function MarkAttendance() {
     async function loadAttendanceData() {
       setLoading(true)
       try {
-        // 1. Fetch students from users collection
+        // 1. Fetch all students from users collection
         const studentsQuery = query(collection(db, 'users'), where('role', '==', 'student'))
         const studentSnap = await getDocs(studentsQuery)
 
@@ -77,7 +78,7 @@ export default function MarkAttendance() {
             uid: doc.id,
             name: data.name || 'Student',
             studentId: data.studentId || doc.id.slice(0, 6).toUpperCase(),
-            assignedClass: data.assignedClass || '',
+            assignedClass: data.assignedClass || 'General',
           })
         })
 
@@ -94,12 +95,12 @@ export default function MarkAttendance() {
           }
         })
 
-        // Filter by class if selected (or show all if class has no specific filter match)
-        const filteredByClass = studentList.filter(s =>
-          !classVal || !s.assignedClass || s.assignedClass === classVal || classVal === 'Grade 10 - Mathematics'
-        )
+        // Filter by class if specific class chosen, otherwise show all enrolled students
+        const filteredByClass = classVal
+          ? studentList.filter(s => s.assignedClass?.toLowerCase() === classVal.toLowerCase())
+          : studentList
 
-        const finalStudents: StudentAttendanceItem[] = (filteredByClass.length > 0 ? filteredByClass : studentList).map(s => {
+        const finalStudents: StudentAttendanceItem[] = filteredByClass.map(s => {
           const existingStatus = attMap[s.uid]
           return {
             id: s.uid,
@@ -107,6 +108,7 @@ export default function MarkAttendance() {
             avatar: getInitials(s.name),
             color: getColor(s.uid),
             name: s.name,
+            assignedClass: s.assignedClass,
             status: existingStatus || 'Present',
           }
         })
@@ -134,7 +136,7 @@ export default function MarkAttendance() {
 
   const handleSaveAttendance = async () => {
     try {
-      // Save each student's attendance to Firestore
+      // Save each student's attendance to Firestore for all students at once
       for (const s of students) {
         if (!s.status) continue
         const docId = `${s.id}_${dateVal}`
@@ -142,7 +144,7 @@ export default function MarkAttendance() {
         await setDoc(attRef, {
           studentId: s.id,
           studentName: s.name,
-          class: classVal,
+          class: s.assignedClass || classVal || 'General',
           date: dateVal,
           status: s.status.toLowerCase(),
           teacherId: user?.uid || '',
@@ -161,7 +163,8 @@ export default function MarkAttendance() {
   const filteredStudents = students.filter(s =>
     search === '' ||
     s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.studentIdStr.toLowerCase().includes(search.toLowerCase())
+    s.studentIdStr.toLowerCase().includes(search.toLowerCase()) ||
+    (s.assignedClass && s.assignedClass.toLowerCase().includes(search.toLowerCase()))
   )
 
   const present = students.filter(s => s.status === 'Present').length
@@ -189,7 +192,7 @@ export default function MarkAttendance() {
         <div className="at-head-row">
           <div>
             <h1 className="sm-title">Mark Attendance</h1>
-            <p className="at-sub">Select class and date to manage student presence.</p>
+            <p className="at-sub">Take attendance for all enrolled students at once.</p>
           </div>
           <div className="at-controls">
             <div className="at-control-group">
@@ -199,11 +202,11 @@ export default function MarkAttendance() {
                 value={classVal}
                 onChange={e => setClassVal(e.target.value)}
               >
+                <option value="">All Students</option>
                 <option value="React Native">React Native</option>
                 <option value="Django">Django</option>
                 <option value="cybersecurity">cybersecurity</option>
                 <option value="UI/UX Design">UI/UX Design</option>
-                <option value="Grade 10 - Mathematics">Grade 10 - Mathematics</option>
               </select>
             </div>
             <div className="at-control-group">
@@ -241,60 +244,89 @@ export default function MarkAttendance() {
         {/* Attendance Table */}
         <div className="at-table-card">
           {/* Table header */}
-          <div className="at-table-head">
-            <div className="at-col-id">ID</div>
-            <div className="at-col-name">Student Name</div>
-            <div className="at-col-actions">
+          <div className="at-table-head" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+              <div className="at-col-id">ID</div>
+              <div className="at-col-name">Student Name & Course</div>
+            </div>
+            <div className="at-col-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <button className="at-mark-all" onClick={markAllPresent}>
                 Mark All Present
+              </button>
+              <button
+                className={`at-save-btn ${saved ? 'at-saved' : ''}`}
+                onClick={handleSaveAttendance}
+                disabled={loading || students.length === 0}
+                style={{ padding: '6px 14px', fontSize: '12px' }}
+              >
+                <MdSave size={15} />
+                {saved ? 'Saved!' : 'Save Attendance'}
               </button>
             </div>
           </div>
 
-          {/* Rows */}
-          {loading ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#6b7280' }}>
-              Loading attendance records...
-            </div>
-          ) : filteredStudents.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#6b7280' }}>
-              No students found for this class. Add students first using the Add Student page.
-            </div>
-          ) : (
-            filteredStudents.map((s) => (
-              <div key={s.id} className="at-row">
-                <div className="at-col-id at-id-text">{s.studentIdStr}</div>
-                <div className="at-col-name">
-                  <div className="at-student-cell">
-                    <div className="at-avatar" style={{ background: s.color }}>{s.avatar}</div>
-                    <span className="at-name">{s.name}</span>
-                  </div>
-                </div>
-                <div className="at-col-actions">
-                  <div className="at-btn-group">
-                    <button
-                      className={`at-status-btn ${s.status === 'Present' ? 'at-present-active' : 'at-inactive'}`}
-                      onClick={() => setStatus(s.id, 'Present')}
-                    >
-                      Present
-                    </button>
-                    <button
-                      className={`at-status-btn ${s.status === 'Absent' ? 'at-absent-active' : 'at-inactive'}`}
-                      onClick={() => setStatus(s.id, 'Absent')}
-                    >
-                      Absent
-                    </button>
-                    <button
-                      className={`at-status-btn ${s.status === 'Late' ? 'at-late-active' : 'at-inactive'}`}
-                      onClick={() => setStatus(s.id, 'Late')}
-                    >
-                      Late
-                    </button>
-                  </div>
-                </div>
+          {/* Scrollable Rows Container */}
+          <div className="at-table-body">
+            {loading ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: '#6b7280' }}>
+                Loading attendance records...
               </div>
-            ))
-          )}
+            ) : filteredStudents.length === 0 ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: '#6b7280' }}>
+                No students found. Add students first using the Add Student page.
+              </div>
+            ) : (
+              filteredStudents.map((s) => (
+                <div key={s.id} className="at-row">
+                  <div className="at-col-id at-id-text">{s.studentIdStr}</div>
+                  <div className="at-col-name">
+                    <div className="at-student-cell">
+                      <div className="at-avatar" style={{ background: s.color }}>{s.avatar}</div>
+                      <div>
+                        <span className="at-name">{s.name}</span>
+                        {s.assignedClass && (
+                          <span style={{
+                            display: 'inline-block',
+                            marginLeft: '8px',
+                            fontSize: '11px',
+                            color: '#4f46e5',
+                            backgroundColor: '#eef2ff',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontWeight: 500
+                          }}>
+                            {s.assignedClass}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="at-col-actions">
+                    <div className="at-btn-group">
+                      <button
+                        className={`at-status-btn ${s.status === 'Present' ? 'at-present-active' : 'at-inactive'}`}
+                        onClick={() => setStatus(s.id, 'Present')}
+                      >
+                        Present
+                      </button>
+                      <button
+                        className={`at-status-btn ${s.status === 'Absent' ? 'at-absent-active' : 'at-inactive'}`}
+                        onClick={() => setStatus(s.id, 'Absent')}
+                      >
+                        Absent
+                      </button>
+                      <button
+                        className={`at-status-btn ${s.status === 'Late' ? 'at-late-active' : 'at-inactive'}`}
+                        onClick={() => setStatus(s.id, 'Late')}
+                      >
+                        Late
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
 
           {/* Save button */}
           <div className="at-footer">
