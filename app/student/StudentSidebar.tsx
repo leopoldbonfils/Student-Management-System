@@ -5,15 +5,15 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   MdDashboard, MdPeople, MdCalendarToday,
-  MdSchedule, MdSettings, MdLogout
+  MdSchedule, MdDescription, MdSettings, MdLogout
 } from 'react-icons/md'
 import { PiGraduationCapFill } from 'react-icons/pi'
 
 const navItems = [
   { name: 'Dashboard', Icon: MdDashboard, href: '/student/dashboard' },
-  { name: 'Students', Icon: MdPeople, href: '/student/dashboard' },
   { name: 'Attendance', Icon: MdCalendarToday, href: '/student/attendance' },
   { name: 'Ask Leave', Icon: MdSchedule, href: '/student/leave' },
+  { name: 'My Report', Icon: MdDescription, href: '/student/report' },
 ]
 
 export default function StudentSidebar() {

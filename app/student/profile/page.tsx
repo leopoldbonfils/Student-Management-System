@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import {
@@ -19,13 +20,13 @@ export default function StudentProfile() {
   const [saving, setSaving] = useState(false)
 
   const studentName = profile?.name || user?.displayName || 'Student'
-  const studentEmail = profile?.email || user?.email || 'student@eduportal.edu'
-  const studentId = profile?.studentId || user?.uid?.slice(0, 8).toUpperCase() || 'STU-2024-001'
-  const studentClass = profile?.assignedClass || 'Grade 10 - Section A'
-  const studentPhone = profile?.phone || '+1 (555) 349-8120'
-  const studentDob = profile?.dob || 'March 22, 2008'
-  const studentGender = profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Student'
-  const studentAddress = profile?.address || '742 Evergreen Terrace, Seattle, WA 98116'
+  const studentEmail = profile?.email || user?.email || ''
+  const studentId = profile?.studentId || (user?.uid ? `STD-${user.uid.slice(0, 6).toUpperCase()}` : 'STD-2026')
+  const studentClass = profile?.assignedClass || 'React Native'
+  const studentPhone = profile?.phone || 'Not provided'
+  const studentDob = profile?.dob || 'Not provided'
+  const studentGender = profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Not specified'
+  const studentAddress = profile?.address || 'Not provided'
 
   const handleStartEdit = () => {
     setPhone(studentPhone)
@@ -58,6 +59,7 @@ export default function StudentProfile() {
           <MdSearch size={16} color="#9ca3af" />
           <input type="text" placeholder="Search EduPortal..." />
         </div>
+        <TopbarRight defaultRole="Student" />
       </header>
 
       {/* Content Area */}

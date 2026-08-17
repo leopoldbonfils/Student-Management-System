@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   MdMenu, MdNotifications, MdKeyboardArrowDown,
   MdGroups, MdFlightTakeoff, MdDescription, MdVerified
@@ -118,24 +119,7 @@ export default function StudentDashboard() {
           </button>
         </div>
 
-        <div className="s2-topbar-right">
-          <button className="s2-bell-btn">
-            <MdNotifications size={22} color="#4b5563" />
-          </button>
-
-          <Link href="/student/profile" className="s2-profile-link" style={{ textDecoration: 'none' }}>
-            <img
-              src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=120&auto=format&fit=crop"
-              alt={studentName}
-              className="s2-avatar-img"
-            />
-            <div className="s2-profile-text">
-              <span className="s2-profile-name">{studentName}</span>
-              <span className="s2-profile-role">Student</span>
-            </div>
-            <MdKeyboardArrowDown size={18} color="#9ca3af" />
-          </Link>
-        </div>
+        <TopbarRight defaultRole="Student" />
       </header>
 
       {/* Main Content Area */}

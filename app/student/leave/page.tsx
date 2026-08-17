@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   MdSearch, MdNotifications,
   MdHelp, MdUploadFile, MdChevronLeft, MdChevronRight,
@@ -172,13 +173,7 @@ export default function RequestLeavePage() {
           <MdSearch size={16} color="#9ca3af" />
           <input type="text" placeholder="Search..." />
         </div>
-        <div className="db-header-actions">
-          <button className="db-icon-btn"><MdNotifications size={22} /></button>
-          <button className="db-icon-btn"><MdHelp size={22} /></button>
-          <Link href="/student/profile" style={{ textDecoration: 'none' }}>
-            <div className="db-avatar">{studentInitial}</div>
-          </Link>
-        </div>
+        <TopbarRight defaultRole="Student" />
       </header>
 
       {/* Content */}

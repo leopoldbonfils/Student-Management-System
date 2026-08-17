@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import { MdSearch, MdSave } from 'react-icons/md'
 
 type AttStatus = 'Present' | 'Absent' | 'Late'
@@ -184,6 +185,8 @@ export default function MarkAttendance() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+
+        <TopbarRight defaultRole="Teacher" />
       </header>
 
       {/* Content */}

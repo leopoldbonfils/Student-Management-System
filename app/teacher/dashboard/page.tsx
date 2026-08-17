@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   MdGridView, MdCheckCircle, MdCancel, MdDescription,
   MdPersonAdd, MdCheck, MdClose, MdShowChart,
@@ -66,7 +67,7 @@ export default function TeacherDashboard() {
   ])
 
   const router = useRouter()
-  const teacherName = profile?.name || user?.displayName || 'Faculty Member'
+  const teacherName = profile?.name || user?.displayName || user?.email?.split('@')[0] || 'Teacher'
   const todayStr = new Date().toISOString().split('T')[0]!
 
   useEffect(() => {
@@ -226,24 +227,7 @@ export default function TeacherDashboard() {
           </button>
         </div>
 
-        <div className="t2-topbar-right">
-          <button className="t2-bell-btn">
-            <MdNotifications size={22} color="#4b5563" />
-            <span className="t2-bell-badge" />
-          </button>
-
-          <Link href="/teacher/profile" className="t2-profile-link" style={{ textDecoration: 'none' }}>
-            <img
-              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=120&auto=format&fit=crop"
-              alt={teacherName}
-              className="t2-avatar-img"
-            />
-            <div className="t2-profile-text">
-              <span className="t2-profile-name">{teacherName}</span>
-              <span className="t2-profile-role">Teacher</span>
-            </div>
-          </Link>
-        </div>
+        <TopbarRight defaultRole="Teacher" />
       </header>
 
       {/* Main Content Area */}

@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   MdSearch, MdNotifications, MdHelp,
   MdCheckCircle, MdCancel, MdAccessTime,
@@ -130,13 +131,7 @@ export default function StudentAttendancePage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div className="db-header-actions">
-          <button className="db-icon-btn"><MdNotifications size={22} /></button>
-          <button className="db-icon-btn"><MdHelp size={22} /></button>
-          <Link href="/student/profile" style={{ textDecoration: 'none' }}>
-            <div className="db-avatar">{studentInitial}</div>
-          </Link>
-        </div>
+        <TopbarRight defaultRole="Student" />
       </header>
 
       {/* Content */}

@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -101,6 +102,7 @@ function StudentSettingsContent() {
           <MdSearch size={16} color="#9ca3af" />
           <input type="text" placeholder="Search..." />
         </div>
+        <TopbarRight defaultRole="Student" />
       </header>
 
       {/* Content Area */}

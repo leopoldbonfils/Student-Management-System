@@ -16,8 +16,8 @@ const navItems = [
   { name: 'Attendance', Icon: MdCalendarToday, href: '/teacher/attendance' },
   { name: 'Leave Requests', Icon: MdAssignment, href: '/teacher/leave' },
   { name: 'Add Student', Icon: MdPersonAdd, href: '/teacher/add-student' },
-  { name: 'Approval', Icon: MdThumbUp, href: '/teacher/leave' },
-  { name: 'Reports', Icon: MdBarChart, href: '/teacher/dashboard' },
+  { name: 'Approval', Icon: MdThumbUp, href: '/teacher/approval' },
+  { name: 'Reports', Icon: MdBarChart, href: '/teacher/reports' },
 ]
 
 export default function TeacherSidebar() {
@@ -41,7 +41,7 @@ export default function TeacherSidebar() {
       {/* Nav List */}
       <nav className="td-nav">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.name === 'Leave Requests' && pathname === '/teacher/leave')
+          const isActive = pathname === item.href
           return (
             <Link
               key={item.name}

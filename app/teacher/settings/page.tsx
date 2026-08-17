@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -86,6 +87,7 @@ export default function TeacherSettings() {
           <MdSearch size={16} color="#9ca3af" />
           <input placeholder="Search EduPortal..." />
         </div>
+        <TopbarRight defaultRole="Teacher" />
       </header>
 
       {/* Content Area */}

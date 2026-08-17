@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   MdSearch, MdPersonAdd,
   MdChevronLeft, MdChevronRight,
@@ -265,6 +266,8 @@ export default function StudentsManagement() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+
+        <TopbarRight defaultRole="Teacher" />
       </header>
 
       {/* Content */}

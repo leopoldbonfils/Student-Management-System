@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/AuthContext'
+import TopbarRight from '@/app/components/TopbarRight'
 import {
   MdSearch, MdCameraAlt, MdSave, MdCheckCircle, MdError
 } from 'react-icons/md'
@@ -105,6 +108,8 @@ export default function AddStudent() {
           <MdSearch size={16} color="#9ca3af" />
           <input placeholder="Search..." />
         </div>
+
+        <TopbarRight defaultRole="Teacher" />
       </header>
 
       {/* Content */}

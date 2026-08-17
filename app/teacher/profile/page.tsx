@@ -17,7 +17,7 @@ export default function TeacherProfile() {
   const [address, setAddress] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const teacherName = profile?.name || user?.displayName || 'Faculty Member'
+  const teacherName = profile?.name || user?.displayName || user?.email?.split('@')[0] || 'Teacher'
   const teacherEmail = profile?.email || user?.email || 'teacher@eduportal.edu'
   const teacherPhone = profile?.phone || '+1 (555) 123-4567'
   const teacherAddress = profile?.address || '482 Academic Way, University District, Seattle, WA 98105'
