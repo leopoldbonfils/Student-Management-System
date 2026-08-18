@@ -27,7 +27,7 @@ export async function sendStudentCredentials({
         <p style="color: #374151; font-size: 15px; line-height: 1.5;">Hello <strong>${name}</strong>,</p>
         <p style="color: #374151; font-size: 15px; line-height: 1.5;">Your student account has been created by your institution. You can now log in to the student portal using the credentials below:</p>
         
-        <div style="background-color: #f3f4f6; border-left: 4px solid #4f46e5; padding: 16px; margin: 24px 0; border-radius: 4px;">
+        <div style="background-color: #f3f4f6; padding: 16px; margin: 24px 0; border-radius: 6px;">
           <p style="margin: 0 0 8px 0; font-size: 14px; color: #4b5563;"><strong>Login Email:</strong></p>
           <p style="margin: 0 0 16px 0; font-size: 15px; color: #111827; font-family: monospace;">${email}</p>
           

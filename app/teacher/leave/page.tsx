@@ -6,7 +6,16 @@ import { collection, query, onSnapshot, doc, updateDoc, serverTimestamp, } from 
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import { MdSearch, MdAssignment, MdCheckCircle, MdTrendingDown, MdCheck, MdClose, } from 'react-icons/md'
+import {
+  MdSearch,
+  MdAssignment,
+  MdCheckCircle,
+  MdTrendingDown,
+  MdCheck,
+  MdClose,
+  MdInsertDriveFile,
+  MdFileDownload,
+} from 'react-icons/md'
 
 interface LeaveRequestItem {
   id: string
@@ -21,6 +30,12 @@ interface LeaveRequestItem {
   reason: string
   status: 'pending' | 'approved' | 'rejected'
   createdAt?: Date
+  attachment?: {
+    name: string
+    size?: string
+    dataUrl: string
+    type?: string
+  } | null
 }
 
 const colorPalette = ['#e0e7ff', '#dcfce7', '#fef3c7', '#fee2e2', '#f3e8ff', '#ccfbf1']
@@ -120,6 +135,7 @@ export default function TeacherLeaveRequestsPage() {
             reason: data.reason || 'No description provided.',
             status: (data.status || 'pending').toLowerCase() as 'pending' | 'approved' | 'rejected',
             createdAt: data.createdAt,
+            attachment: data.attachment || null,
           }
         })
 
@@ -547,13 +563,47 @@ export default function TeacherLeaveRequestsPage() {
                             fontSize: '13px',
                             color: '#64748b',
                             maxWidth: '220px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
                           }}
-                          title={req.reason}
                         >
-                          {req.reason}
+                          <div
+                            style={{
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                            title={req.reason}
+                          >
+                            {req.reason}
+                          </div>
+                          {req.attachment && (
+                            <div style={{ marginTop: '4px' }}>
+                              <a
+                                href={req.attachment.dataUrl}
+                                download={req.attachment.name}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  padding: '2px 6px',
+                                  backgroundColor: '#eef2ff',
+                                  color: '#4f46e5',
+                                  fontSize: '11px',
+                                  fontWeight: 500,
+                                  borderRadius: '4px',
+                                  textDecoration: 'none',
+                                  border: '1px solid #c7d2fe',
+                                }}
+                              >
+                                <MdInsertDriveFile size={12} />
+                                <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {req.attachment.name}
+                                </span>
+                                <MdFileDownload size={12} />
+                              </a>
+                            </div>
+                          )}
                         </td>
 
                         {/* Status */}

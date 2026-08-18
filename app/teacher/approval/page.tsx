@@ -6,7 +6,16 @@ import { collection, query, onSnapshot, doc, updateDoc, serverTimestamp, } from 
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import { MdSearch, MdFilterList, MdCheckCircle, MdCancel, MdEvent } from 'react-icons/md'
+import {
+  MdSearch,
+  MdFilterList,
+  MdCheckCircle,
+  MdCancel,
+  MdEvent,
+  MdNotifications,
+  MdInsertDriveFile,
+  MdFileDownload,
+} from 'react-icons/md'
 
 interface LeaveRequestItem {
   id: string
@@ -18,7 +27,13 @@ interface LeaveRequestItem {
   dates: string
   note: string
   status: 'pending' | 'approved' | 'rejected'
-  detail?: string
+  detail: string
+  attachment?: {
+    name: string
+    size?: string
+    dataUrl: string
+    type?: string
+  } | null
   reviewedAt?: Date
 }
 
@@ -94,6 +109,7 @@ export default function ApprovalPage() {
           note: data.reason || 'No description provided.',
           status: (data.status || 'pending').toLowerCase() as 'pending' | 'approved' | 'rejected',
           detail: `${data.type || 'Leave'} • ${datesFormatted}`,
+          attachment: data.attachment || null,
         }
       })
 
@@ -209,6 +225,35 @@ export default function ApprovalPage() {
                     </div>
                   </div>
                   <p className="lr-note">{req.note}</p>
+                  {req.attachment && (
+                    <div style={{ margin: '8px 0 12px' }}>
+                      <a
+                        href={req.attachment.dataUrl}
+                        download={req.attachment.name}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '5px 10px',
+                          backgroundColor: '#eef2ff',
+                          color: '#4f46e5',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          borderRadius: '6px',
+                          textDecoration: 'none',
+                          border: '1px solid #c7d2fe',
+                        }}
+                      >
+                        <MdInsertDriveFile size={15} />
+                        <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {req.attachment.name}
+                        </span>
+                        <MdFileDownload size={14} />
+                      </a>
+                    </div>
+                  )}
                   <div className="lr-actions">
                     <button
                       className="lr-approve-btn"
