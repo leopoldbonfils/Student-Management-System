@@ -70,61 +70,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser)
       if (currentUser) {
-        // Real-time listener for user profile so updates (e.g. phone/address/photo) reflect immediately
+        // First sync via Admin API to guarantee real teacher/student identity and avoid permission-denied crashes
+        if (currentUser.email) {
+          fetch('/api/get-user-role', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: currentUser.email, uid: currentUser.uid }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.profile) {
+                setProfile({ ...data.profile, uid: currentUser.uid })
+              }
+              setLoading(false)
+            })
+            .catch((err) => {
+              console.warn('API role fetch error:', err)
+            })
+        }
+
+        // Real-time listener for user profile updates
         const docRef = doc(db, 'users', currentUser.uid)
-        unsubscribeDoc = onSnapshot(
-          docRef,
-          (snapshot) => {
-            if (snapshot.exists()) {
-              const data = snapshot.data() as UserProfile
-              setProfile({ ...data, uid: currentUser.uid })
-            } else if (currentUser.email) {
-              fetch('/api/get-user-role', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: currentUser.email, uid: currentUser.uid }),
-              })
-                .then(r => r.json())
-                .then(data => {
-                  if (data.profile) {
-                    setProfile({ ...data.profile, uid: currentUser.uid })
-                  } else {
-                    setProfile(null)
-                  }
-                })
-                .catch(() => setProfile(null))
-            } else {
-              setProfile(null)
-            }
-            setLoading(false)
-          },
-          (error) => {
-            console.warn('Profile listener fallback to server API:', error.message)
-            if (currentUser.email) {
-              fetch('/api/get-user-role', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: currentUser.email, uid: currentUser.uid }),
-              })
-                .then(r => r.json())
-                .then(data => {
-                  if (data.profile) {
-                    setProfile({ ...data.profile, uid: currentUser.uid })
-                  } else {
-                    setProfile(null)
-                  }
-                  setLoading(false)
-                })
-                .catch(() => {
-                  setProfile(null)
-                  setLoading(false)
-                })
-            } else {
-              setProfile(null)
+        try {
+          unsubscribeDoc = onSnapshot(
+            docRef,
+            (snapshot) => {
+              if (snapshot.exists()) {
+                const data = snapshot.data() as UserProfile
+                setProfile({ ...data, uid: currentUser.uid })
+              }
+              setLoading(false)
+            },
+            (error) => {
+              // Silently handle Firestore permission-denied by trusting the admin API profile
+              if (error.code !== 'permission-denied') {
+                console.warn('Profile listener info:', error.message)
+              }
               setLoading(false)
             }
-          }
-        )
+          )
+        } catch (e) {
+          setLoading(false)
+        }
       } else {
         if (unsubscribeDoc) {
           unsubscribeDoc()

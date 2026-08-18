@@ -47,10 +47,10 @@ export default function TopbarRight({ defaultRole }: TopbarRightProps) {
 
   const initials = getInitials(displayName, profile?.email || user?.email || '')
   const avatarUrl = profile?.avatar || user?.photoURL
-  const profileHref = role === 'Teacher' ? '/teacher/settings' : '/student/profile'
+  const profileHref = role === 'Teacher' ? '/teacher/profile' : '/student/profile'
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: 'auto' }}>
       {/* Notification Bell with Red Dot */}
       <button
         style={{
@@ -86,7 +86,7 @@ export default function TopbarRight({ defaultRole }: TopbarRightProps) {
         />
       </button>
 
-      {/* User Profile Info & Avatar */}
+      {/* User Profile Link -> Navigates to /teacher/profile or /student/profile */}
       <Link
         href={profileHref}
         style={{
@@ -95,7 +95,13 @@ export default function TopbarRight({ defaultRole }: TopbarRightProps) {
           gap: '10px',
           textDecoration: 'none',
           cursor: 'pointer',
+          padding: '4px 8px',
+          borderRadius: '8px',
+          transition: 'background 0.15s ease',
         }}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+        title={`View ${displayName}'s Profile`}
       >
         {avatarUrl && !imageError ? (
           <img

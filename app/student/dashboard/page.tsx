@@ -3,18 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-} from 'firebase/firestore'
+import {collection,query,where,onSnapshot,} from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
 import {
-  MdMenu, MdNotifications, MdKeyboardArrowDown,
-  MdGroups, MdFlightTakeoff, MdDescription, MdVerified
+  MdMenu, MdGroups, MdFlightTakeoff, MdDescription, MdVerified
 } from 'react-icons/md'
 
 interface StudentLeaveRecord {
@@ -30,8 +24,6 @@ export default function StudentDashboard() {
   const [leavesTaken, setLeavesTaken] = useState(0)
   const [pendingLeaves, setPendingLeaves] = useState(0)
   const [leaveRequests, setLeaveRequests] = useState<StudentLeaveRecord[]>([])
-  const [presentDays, setPresentDays] = useState(0)
-  const [absentDays, setAbsentDays] = useState(0)
 
   const studentName = profile?.name || user?.displayName || 'Student'
 
@@ -57,9 +49,6 @@ export default function StudentDashboard() {
       })
 
       const total = p + a + l
-      setPresentDays(p + l)
-      setAbsentDays(a)
-
       if (total > 0) {
         setAttendancePercent(Math.round(((p + l) / total) * 100))
       } else {
@@ -77,7 +66,7 @@ export default function StudentDashboard() {
       snap.forEach(d => {
         const data = d.data()
         const statusNormalized =
-          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as any
+          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as 'Pending' | 'Approved' | 'Rejected'
 
         if (data.status?.toLowerCase() === 'approved') approvedCount++
         if (data.status?.toLowerCase() === 'pending') pendingCount++
@@ -98,7 +87,7 @@ export default function StudentDashboard() {
       unsubAtt()
       unsubLeave()
     }
-  }, [user])
+  }, [user, authLoading, router])
 
   const radius = 64
   const strokeWidth = 18
@@ -126,7 +115,7 @@ export default function StudentDashboard() {
       <div className="s2-content">
         {/* Welcome Section */}
         <div className="s2-welcome-row">
-          <h1 className="s2-title">Welcome back, {studentName.split(' ')[0]}! 👋</h1>
+          <h1 className="s2-title">Welcome back, {studentName.split(' ')[0]}!</h1>
           <p className="s2-sub">Here is your academic overview</p>
         </div>
 

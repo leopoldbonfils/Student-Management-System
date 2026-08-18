@@ -2,30 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-} from 'firebase/firestore'
+import { collection, query, where, onSnapshot,} from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import {
-  MdSearch,
-  MdNotifications,
-  MdHelpOutline,
-  MdFileDownload,
-  MdCheckCircle,
-  MdEventAvailable,
-  MdAssignment,
-  MdCancel,
-  MdAccessTime,
-  MdBadge,
-  MdClass,
-  MdPerson,
-  MdTrendingUp,
-} from 'react-icons/md'
+import {MdSearch, MdFileDownload, MdCheckCircle, MdEventAvailable, MdAssignment, MdCancel, MdBadge, MdClass, MdTrendingUp, } from 'react-icons/md'
 
 interface AttendanceHistoryItem {
   id: string

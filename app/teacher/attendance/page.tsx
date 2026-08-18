@@ -2,15 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  setDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { collection, query, where, getDocs, doc, setDoc, serverTimestamp, } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
@@ -123,7 +115,7 @@ export default function MarkAttendance() {
     }
 
     loadAttendanceData()
-  }, [classVal, dateVal])
+  }, [classVal, dateVal, authLoading, router, user])
 
   const setStatus = (id: string, status: AttStatus) => {
     setSaved(false)

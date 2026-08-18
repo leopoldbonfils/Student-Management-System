@@ -14,6 +14,9 @@ function getAdminApp(): App {
   if (credentialsJson) {
     try {
       const parsed = typeof credentialsJson === 'string' ? JSON.parse(credentialsJson) : credentialsJson
+      if (parsed && typeof parsed.private_key === 'string') {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n')
+      }
       return initializeApp({
         credential: cert(parsed),
         projectId: parsed.project_id || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,

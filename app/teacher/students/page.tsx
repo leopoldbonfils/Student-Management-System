@@ -3,22 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  getDocs
+import { collection, query, where, onSnapshot, getDocs
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import {
-  MdSearch, MdPersonAdd,
-  MdChevronLeft, MdChevronRight,
-  MdEdit, MdDelete, MdClose,
-  MdCheckCircle, MdError, MdWarning
-} from 'react-icons/md'
+import { MdSearch, MdPersonAdd, MdChevronLeft, MdChevronRight, MdClose, MdCheckCircle, MdError } from 'react-icons/md'
 
 interface StudentRecord {
   uid: string
@@ -107,10 +97,10 @@ export default function StudentsManagement() {
       const rawStudents = snapshot.docs.map(doc => ({
         uid: doc.id,
         ...doc.data()
-      })) as any[]
+      })) as Array<{ uid: string; name?: string; email?: string; studentId?: string; assignedClass?: string; status?: string; phone?: string; gender?: string; dob?: string; address?: string }>
 
       // 2. Fetch attendance data to compute real attendance percentage for each student
-      let attendanceMap: Record<string, { present: number; total: number }> = {}
+      const attendanceMap: Record<string, { present: number; total: number }> = {}
       try {
         const attSnapshot = await getDocs(collection(db, 'attendance'))
         attSnapshot.forEach(doc => {
@@ -139,7 +129,7 @@ export default function StudentsManagement() {
           assignedClass: s.assignedClass || 'Unassigned',
           status: s.status || 'Active',
           attendance: attPercent,
-          avatar: getInitials(s.name),
+          avatar: getInitials(s.name || 'Student'),
           color: getColor(s.uid),
           phone: s.phone || '',
           gender: s.gender || '',
@@ -156,7 +146,7 @@ export default function StudentsManagement() {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [authLoading, router, user])
 
   // Open Edit Modal
   const handleOpenEdit = (student: StudentRecord) => {
@@ -198,9 +188,10 @@ export default function StudentsManagement() {
       setNotification({ type: 'success', message: `${editForm.name} updated successfully!` })
       setEditingStudent(null)
       setTimeout(() => setNotification(null), 4000)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string }
       console.error('Error updating student:', err)
-      setNotification({ type: 'error', message: err.message || 'Failed to update student.' })
+      setNotification({ type: 'error', message: error?.message || 'Failed to update student.' })
     } finally {
       setActionLoading(false)
     }
@@ -224,9 +215,10 @@ export default function StudentsManagement() {
       setNotification({ type: 'success', message: `${deletingStudent.name} deleted successfully.` })
       setDeletingStudent(null)
       setTimeout(() => setNotification(null), 4000)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string }
       console.error('Error deleting student:', err)
-      setNotification({ type: 'error', message: err.message || 'Failed to delete student.' })
+      setNotification({ type: 'error', message: error?.message || 'Failed to delete student.' })
     } finally {
       setActionLoading(false)
     }

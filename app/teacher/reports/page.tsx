@@ -1,29 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-} from 'firebase/firestore'
+import { collection, query, where, getDocs, } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import {
-  MdSearch,
-  MdCalendarToday,
-  MdFileDownload,
-  MdRefresh,
-  MdGroups,
-  MdCheckCircle,
-  MdPersonOff,
-  MdAssignment,
-  MdMoreVert,
-  MdPieChart,
-  MdTrendingUp,
-} from 'react-icons/md'
+import { MdSearch, MdCalendarToday, MdFileDownload, MdRefresh, MdGroups, MdCheckCircle, MdPersonOff, MdAssignment, MdMoreVert, MdPieChart, MdTrendingUp, } from 'react-icons/md'
 
 interface CourseAttendanceStat {
   course: string
@@ -34,13 +17,13 @@ interface CourseAttendanceStat {
 }
 
 export default function TeacherReportsPage() {
-  const { user, profile, loading: authLoading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
   const [classFilter, setClassFilter] = useState('All')
-  const [dateRange, setDateRange] = useState('2026 Academic Year')
   const [search, setSearch] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+  const dateRange = '2026 Academic Year'
 
   // Real-time Student Management Metrics
   const [totalStudents, setTotalStudents] = useState(0)
@@ -51,7 +34,7 @@ export default function TeacherReportsPage() {
   const [totalLeaves, setTotalLeaves] = useState(0)
 
   // Weekly Attendance Trends (from real attendance records)
-  const [weeklyAttendance, setWeeklyAttendance] = useState([
+  const weeklyAttendance = [
     { week: 'Week 1', rate: 95 },
     { week: 'Week 2', rate: 92 },
     { week: 'Week 3', rate: 96 },
@@ -60,7 +43,7 @@ export default function TeacherReportsPage() {
     { week: 'Week 6', rate: 97 },
     { week: 'Week 7', rate: 93 },
     { week: 'Week 8', rate: 95 },
-  ])
+  ]
 
   // Donut Status Breakdown
   const [statusDistribution, setStatusDistribution] = useState([
@@ -78,9 +61,7 @@ export default function TeacherReportsPage() {
     { course: 'UI/UX Design', code: 'Product Design Stream', studentCount: 0, avgAttendance: 94, color: '#8b5cf6' },
   ])
 
-  const teacherName = profile?.name || user?.displayName || user?.email?.split('@')[0] || 'Teacher'
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setRefreshing(true)
     try {
       // 1. Fetch Total Students from users collection
@@ -221,7 +202,7 @@ export default function TeacherReportsPage() {
     } finally {
       setTimeout(() => setRefreshing(false), 500)
     }
-  }
+  }, [classFilter])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -229,14 +210,26 @@ export default function TeacherReportsPage() {
       return
     }
     if (!user) return
-    loadData()
-  }, [user, authLoading, classFilter])
+
+    const initializeData = async () => {
+      await loadData()
+    }
+    initializeData()
+  }, [user, authLoading, classFilter, router, loadData])
 
   // Donut chart calculations
   const radius = 42
   const strokeWidth = 14
   const circumference = 2 * Math.PI * radius
-  let cumulativeOffset = 0
+  
+  // Pre-calculate all donut chart circles to avoid mutation during render
+  const donutCircles = statusDistribution.reduce((acc, item) => {
+    const strokeLength = (item.percent / 100) * circumference
+    const strokeDash = `${strokeLength} ${circumference - strokeLength}`
+    const currentOffset = acc.reduce((sum, circle) => sum + (circle.percent / 100) * circumference, 0)
+    
+    return [...acc, { ...item, strokeDash, strokeDashoffset: -currentOffset }]
+  }, [] as (typeof statusDistribution[0] & { strokeDash: string; strokeDashoffset: number })[])
 
   return (
     <>
@@ -641,26 +634,19 @@ export default function TeacherReportsPage() {
             {/* Donut Graphic */}
             <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 16px' }}>
               <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
-                {statusDistribution.map((item) => {
-                  const strokeLength = (item.percent / 100) * circumference
-                  const strokeDash = `${strokeLength} ${circumference - strokeLength}`
-                  const currentOffset = cumulativeOffset
-                  cumulativeOffset += strokeLength
-
-                  return (
-                    <circle
-                      key={item.label}
-                      cx="60"
-                      cy="60"
-                      r={radius}
-                      fill="transparent"
-                      stroke={item.color}
-                      strokeWidth={strokeWidth}
-                      strokeDasharray={strokeDash}
-                      strokeDashoffset={-currentOffset}
-                    />
-                  )
-                })}
+                {donutCircles.map((item) => (
+                  <circle
+                    key={item.label}
+                    cx="60"
+                    cy="60"
+                    r={radius}
+                    fill="transparent"
+                    stroke={item.color}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={item.strokeDash}
+                    strokeDashoffset={item.strokeDashoffset}
+                  />
+                ))}
               </svg>
               <div
                 style={{

@@ -2,24 +2,10 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  signInWithEmailAndPassword,
-  updatePassword,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-  User
-} from 'firebase/auth'
+import {signInWithEmailAndPassword, updatePassword, reauthenticateWithCredential,EmailAuthProvider,User} from 'firebase/auth'
 import { doc, updateDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
-import {
-  MdEmail,
-  MdLock,
-  MdVisibility,
-  MdVisibilityOff,
-  MdVpnKey,
-  MdCheckCircle,
-  MdError
-} from 'react-icons/md'
+import {MdEmail, MdLock, MdVisibility, MdVisibilityOff, MdVpnKey, MdCheckCircle, MdError} from 'react-icons/md'
 
 const LoginPage = () => {
   const router = useRouter()
@@ -75,26 +61,27 @@ const LoginPage = () => {
       if (userRole === 'teacher') {
         router.push('/teacher/dashboard')
       } else if (mustChange) {
-        // Detect temporary/initial password -> Trigger Reset Password Modal
+        // Detect temporary/initial password Trigger Reset Password Modal
         setAuthenticatedUser(user)
         setOldPassword(cleanPassword) // Auto-fill old password from current login session
         setShowResetModal(true)
       } else {
         router.push('/student/dashboard')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string }
       console.error('Login error:', err)
       if (
-        err.code === 'auth/invalid-credential' ||
-        err.code === 'auth/user-not-found' ||
-        err.code === 'auth/wrong-password' ||
-        err.code === 'auth/invalid-email'
+        error?.code === 'auth/invalid-credential' ||
+        error?.code === 'auth/user-not-found' ||
+        error?.code === 'auth/wrong-password' ||
+        error?.code === 'auth/invalid-email'
       ) {
         setError('Invalid email or password. Please verify your credentials and try again.')
-      } else if (err.code === 'auth/too-many-requests') {
+      } else if (error?.code === 'auth/too-many-requests') {
         setError('Too many failed attempts. Please try again later.')
       } else {
-        setError(err.message || 'Failed to sign in. Please check your credentials.')
+        setError(error?.message || 'Failed to sign in. Please check your credentials.')
       }
     } finally {
       setLoading(false)
@@ -168,14 +155,15 @@ const LoginPage = () => {
       setTimeout(() => {
         router.push('/student/dashboard')
       }, 1000)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { code?: string; message?: string }
       console.error('Password reset error:', err)
-      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+      if (error?.code === 'auth/wrong-password' || error?.code === 'auth/invalid-credential') {
         setResetError('Incorrect current/temporary password.')
-      } else if (err.code === 'auth/weak-password') {
+      } else if (error?.code === 'auth/weak-password') {
         setResetError('The new password is too weak. Please use letters, numbers, or symbols.')
       } else {
-        setResetError(err.message || 'Failed to update password. Please try again.')
+        setResetError(error?.message || 'Failed to update password. Please try again.')
       }
     } finally {
       setResetLoading(false)

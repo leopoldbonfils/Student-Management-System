@@ -2,21 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  onSnapshot,
-  doc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { collection, query, onSnapshot, doc, updateDoc, serverTimestamp, } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import {
-  MdSearch, MdFilterList,
-  MdCheckCircle, MdCancel, MdEvent
-} from 'react-icons/md'
+import { MdSearch, MdFilterList, MdCheckCircle, MdCancel, MdEvent } from 'react-icons/md'
 
 interface LeaveRequestItem {
   id: string
@@ -29,7 +19,7 @@ interface LeaveRequestItem {
   note: string
   status: 'pending' | 'approved' | 'rejected'
   detail?: string
-  reviewedAt?: any
+  reviewedAt?: Date
 }
 
 const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6']
@@ -102,7 +92,7 @@ export default function ApprovalPage() {
           typeColor: getTypeColor(data.type),
           dates: datesFormatted,
           note: data.reason || 'No description provided.',
-          status: (data.status || 'pending').toLowerCase() as any,
+          status: (data.status || 'pending').toLowerCase() as 'pending' | 'approved' | 'rejected',
           detail: `${data.type || 'Leave'} • ${datesFormatted}`,
         }
       })
@@ -121,7 +111,7 @@ export default function ApprovalPage() {
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [authLoading, router, user])
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
     try {

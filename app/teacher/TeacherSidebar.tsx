@@ -8,7 +8,6 @@ import {
   MdPersonAdd, MdThumbUp, MdBarChart, MdSettings,
   MdLogout
 } from 'react-icons/md'
-import { PiGraduationCapFill } from 'react-icons/pi'
 
 const navItems = [
   { name: 'Dashboard', Icon: MdDashboard, href: '/teacher/dashboard' },
@@ -28,9 +27,6 @@ export default function TeacherSidebar() {
       {/* Logo */}
       <Link href="/teacher/dashboard" style={{ textDecoration: 'none' }}>
         <div className="td-logo">
-          <div className="td-logo-icon">
-            <PiGraduationCapFill size={20} color="white" />
-          </div>
           <div>
             <p className="td-logo-title">EduPortal</p>
             <p className="td-logo-sub">Management System</p>

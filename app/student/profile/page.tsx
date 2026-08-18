@@ -2,14 +2,14 @@
 
 import React, { useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
-import TopbarRight from '@/app/components/TopbarRight'
+import TopbarRight, { getInitials } from '@/app/components/TopbarRight'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import {
   MdEdit, MdSearch,
   MdSchool, MdEmail, MdPerson, MdLocationOn,
   MdCheckCircle, MdClass, MdMap, MdSupervisorAccount,
-  MdSave, MdCancel
+  MdSave, MdCancel, MdPhone
 } from 'react-icons/md'
 
 export default function StudentProfile() {
@@ -18,19 +18,22 @@ export default function StudentProfile() {
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [saving, setSaving] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   const studentName = profile?.name || user?.displayName || 'Student'
   const studentEmail = profile?.email || user?.email || ''
   const studentId = profile?.studentId || (user?.uid ? `STD-${user.uid.slice(0, 6).toUpperCase()}` : 'STD-2026')
   const studentClass = profile?.assignedClass || 'React Native'
-  const studentPhone = profile?.phone || 'Not provided'
-  const studentDob = profile?.dob || 'Not provided'
-  const studentGender = profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Not specified'
-  const studentAddress = profile?.address || 'Not provided'
+  const studentPhone = profile?.phone || '+250 788 000 000'
+  const studentDob = profile?.dob || 'Not specified'
+  const studentGender = profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : 'Student'
+  const studentAddress = profile?.address || 'Kigali, Rwanda'
+  const initials = getInitials(studentName, studentEmail)
+  const avatarUrl = profile?.avatar || user?.photoURL
 
   const handleStartEdit = () => {
-    setPhone(studentPhone)
-    setAddress(studentAddress)
+    setPhone(profile?.phone || studentPhone)
+    setAddress(profile?.address || studentAddress)
     setEditing(true)
   }
 
@@ -77,14 +80,32 @@ export default function StudentProfile() {
         <div className="pf-hero-card">
           <div className="pf-hero-left">
             <div className="pf-avatar-wrapper">
-              <img 
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=256&auto=format&fit=crop" 
-                alt={studentName}
-                className="pf-avatar-img"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
+              {avatarUrl && !imageError ? (
+                <img 
+                  src={avatarUrl} 
+                  alt={studentName}
+                  className="pf-avatar-img"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '84px',
+                    height: '84px',
+                    borderRadius: '50%',
+                    backgroundColor: '#4f46e5',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    letterSpacing: '1px',
+                  }}
+                >
+                  {initials}
+                </div>
+              )}
             </div>
 
             <div className="pf-hero-info">
@@ -100,9 +121,11 @@ export default function StudentProfile() {
                 <span className="pf-badge-active">
                   <MdCheckCircle size={13} /> Active Student
                 </span>
-                <span className="pf-badge-email">
-                  <MdEmail size={13} /> {studentEmail}
-                </span>
+                {studentEmail && (
+                  <span className="pf-badge-email">
+                    <MdEmail size={13} /> {studentEmail}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -156,16 +179,20 @@ export default function StudentProfile() {
                   <span className="pf-value pf-link">{studentEmail}</span>
                 </div>
                 <div className="pf-field">
-                  <span className="pf-label">PHONE NUMBER</span>
+                  <span className="pf-label">PHONE NUMBER (RWANDA)</span>
                   {editing ? (
                     <input
                       className="as-input"
                       style={{ marginTop: '4px', fontSize: '13px' }}
                       value={phone}
+                      placeholder="+250 788 000 000"
                       onChange={e => setPhone(e.target.value)}
                     />
                   ) : (
-                    <span className="pf-value">{studentPhone}</span>
+                    <span className="pf-value" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MdPhone size={14} color="#10b981" />
+                      {profile?.phone || studentPhone}
+                    </span>
                   )}
                 </div>
                 <div className="pf-field">
@@ -179,7 +206,7 @@ export default function StudentProfile() {
               </div>
             </div>
 
-            {/* Contact & Guardian Address */}
+            {/* Contact Address */}
             <div className="pf-card">
               <div className="pf-card-head">
                 <MdLocationOn size={18} className="pf-head-icon" />
@@ -197,12 +224,13 @@ export default function StudentProfile() {
                       className="as-textarea"
                       style={{ marginTop: '4px', fontSize: '13px', width: '100%' }}
                       rows={3}
+                      placeholder="Kigali, Rwanda"
                       value={address}
                       onChange={e => setAddress(e.target.value)}
                     />
                   ) : (
                     <div className="pf-address-text">
-                      <p>{studentAddress}</p>
+                      <p>{profile?.address || studentAddress}</p>
                     </div>
                   )}
                 </div>
@@ -229,15 +257,15 @@ export default function StudentProfile() {
                   <span className="pf-value">{studentClass}</span>
                 </div>
                 <div className="pf-field pf-full">
-                  <span className="pf-label">ACADEMIC ADVISOR</span>
+                  <span className="pf-label">ACADEMIC SUPERVISION</span>
                   <div className="pf-qual-row">
                     <MdSupervisorAccount size={16} className="pf-qual-icon" />
                     <span className="pf-value">Faculty Department</span>
                   </div>
                 </div>
                 <div className="pf-field pf-full">
-                  <span className="pf-label">STREAM & MAJOR</span>
-                  <span className="pf-value">High School Academic Program</span>
+                  <span className="pf-label">STREAM & PROGRAM</span>
+                  <span className="pf-value">{studentClass} Technical Stream</span>
                 </div>
               </div>
             </div>
@@ -247,27 +275,27 @@ export default function StudentProfile() {
               <div className="pf-card-head pf-space-between">
                 <div className="pf-head-left">
                   <MdClass size={18} className="pf-head-icon" />
-                  <h3 className="pf-card-title">Enrolled Courses</h3>
+                  <h3 className="pf-card-title">Active Courses</h3>
                 </div>
-                <span className="pf-count-badge">4 Total</span>
+                <span className="pf-count-badge">4 Courses</span>
               </div>
 
               <div className="pf-classes-list">
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-blue" />
-                  <span>Mathematics</span>
+                  <span>React Native</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-green" />
-                  <span>Science</span>
+                  <span>Django</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-blue" />
-                  <span>English Literature</span>
+                  <span>cybersecurity</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-purple" />
-                  <span>History</span>
+                  <span>UI/UX Design</span>
                 </div>
               </div>
             </div>

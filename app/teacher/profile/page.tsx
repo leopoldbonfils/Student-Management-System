@@ -4,10 +4,12 @@ import React, { useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import TopbarRight, { getInitials } from '@/app/components/TopbarRight'
 import {
   MdEdit, MdSearch,
   MdWork, MdEmail, MdPerson, MdLocationOn,
-  MdCheckCircle, MdSchool, MdClass, MdMap, MdSave, MdCancel
+  MdCheckCircle, MdSchool, MdClass, MdMap, MdSave, MdCancel,
+  MdPhone
 } from 'react-icons/md'
 
 export default function TeacherProfile() {
@@ -16,15 +18,20 @@ export default function TeacherProfile() {
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [saving, setSaving] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   const teacherName = profile?.name || user?.displayName || user?.email?.split('@')[0] || 'Teacher'
-  const teacherEmail = profile?.email || user?.email || 'teacher@eduportal.edu'
-  const teacherPhone = profile?.phone || '+1 (555) 123-4567'
-  const teacherAddress = profile?.address || '482 Academic Way, University District, Seattle, WA 98105'
+  const teacherEmail = profile?.email || user?.email || ''
+  const teacherPhone = profile?.phone || '+250 788 123 456'
+  const teacherAddress = profile?.address || 'Kigali, Rwanda'
+  const teacherDob = profile?.dob || 'Not specified'
+  const teacherGender = profile?.gender ? (profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)) : 'Not specified'
+  const initials = getInitials(teacherName, teacherEmail)
+  const avatarUrl = profile?.avatar || user?.photoURL
 
   const handleStartEdit = () => {
-    setPhone(teacherPhone)
-    setAddress(teacherAddress)
+    setPhone(profile?.phone || teacherPhone)
+    setAddress(profile?.address || teacherAddress)
     setEditing(true)
   }
 
@@ -53,6 +60,8 @@ export default function TeacherProfile() {
           <MdSearch size={16} color="#9ca3af" />
           <input placeholder="Search EduPortal..." />
         </div>
+
+        <TopbarRight defaultRole="Teacher" />
       </header>
 
       {/* Content Area */}
@@ -70,32 +79,52 @@ export default function TeacherProfile() {
         <div className="pf-hero-card">
           <div className="pf-hero-left">
             <div className="pf-avatar-wrapper">
-              <img 
-                src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=256&auto=format&fit=crop" 
-                alt={teacherName}
-                className="pf-avatar-img"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
-              />
+              {avatarUrl && !imageError ? (
+                <img 
+                  src={avatarUrl} 
+                  alt={teacherName}
+                  className="pf-avatar-img"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: '84px',
+                    height: '84px',
+                    borderRadius: '50%',
+                    backgroundColor: '#4338ca',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    letterSpacing: '1px',
+                  }}
+                >
+                  {initials}
+                </div>
+              )}
             </div>
 
             <div className="pf-hero-info">
               <h2 className="pf-name">{teacherName}</h2>
               <p className="pf-role">
                 <MdWork size={14} className="pf-role-icon" />
-                <span>Senior Faculty</span>
+                <span>Faculty Instructor</span>
                 <span className="pf-dot">•</span>
-                <span>Science & Math Dept.</span>
+                <span>Software & Systems Dept.</span>
               </p>
 
               <div className="pf-badge-group">
                 <span className="pf-badge-active">
                   <MdCheckCircle size={13} /> Active Staff
                 </span>
-                <span className="pf-badge-email">
-                  <MdEmail size={13} /> {teacherEmail}
-                </span>
+                {teacherEmail && (
+                  <span className="pf-badge-email">
+                    <MdEmail size={13} /> {teacherEmail}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -149,25 +178,29 @@ export default function TeacherProfile() {
                   <span className="pf-value pf-link">{teacherEmail}</span>
                 </div>
                 <div className="pf-field">
-                  <span className="pf-label">PHONE NUMBER</span>
+                  <span className="pf-label">PHONE NUMBER (RWANDA)</span>
                   {editing ? (
                     <input
                       className="as-input"
                       style={{ marginTop: '4px', fontSize: '13px' }}
                       value={phone}
+                      placeholder="+250 788 123 456"
                       onChange={e => setPhone(e.target.value)}
                     />
                   ) : (
-                    <span className="pf-value">{teacherPhone}</span>
+                    <span className="pf-value" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <MdPhone size={14} color="#10b981" />
+                      {profile?.phone || teacherPhone}
+                    </span>
                   )}
                 </div>
                 <div className="pf-field">
                   <span className="pf-label">DATE OF BIRTH</span>
-                  <span className="pf-value">October 14, 1982</span>
+                  <span className="pf-value">{teacherDob}</span>
                 </div>
                 <div className="pf-field">
                   <span className="pf-label">GENDER</span>
-                  <span className="pf-value">{profile?.gender || 'Faculty'}</span>
+                  <span className="pf-value">{teacherGender}</span>
                 </div>
               </div>
             </div>
@@ -190,12 +223,13 @@ export default function TeacherProfile() {
                       className="as-textarea"
                       style={{ marginTop: '4px', fontSize: '13px', width: '100%' }}
                       rows={3}
+                      placeholder="KG 548 St, Kigali, Rwanda"
                       value={address}
                       onChange={e => setAddress(e.target.value)}
                     />
                   ) : (
                     <div className="pf-address-text">
-                      <p>{teacherAddress}</p>
+                      <p>{profile?.address || teacherAddress}</p>
                     </div>
                   )}
                 </div>
@@ -215,22 +249,22 @@ export default function TeacherProfile() {
               <div className="pf-fields-grid">
                 <div className="pf-field">
                   <span className="pf-label">Employee ID</span>
-                  <span className="pf-value pf-bold">EMP-{user?.uid?.slice(0, 6).toUpperCase() || '2018-042'}</span>
+                  <span className="pf-value pf-bold">EMP-{user?.uid?.slice(0, 6).toUpperCase() || '2026-RW'}</span>
                 </div>
                 <div className="pf-field">
                   <span className="pf-label">Status</span>
                   <span className="pf-value">Active Faculty</span>
                 </div>
                 <div className="pf-field pf-full">
-                  <span className="pf-label">HIGHEST QUALIFICATION</span>
+                  <span className="pf-label">QUALIFICATION / DISCIPLINE</span>
                   <div className="pf-qual-row">
                     <MdSchool size={16} className="pf-qual-icon" />
-                    <span className="pf-value">Ph.D. in Education / Applied Sciences</span>
+                    <span className="pf-value">Computer Science & Software Systems</span>
                   </div>
                 </div>
                 <div className="pf-field pf-full">
                   <span className="pf-label">SPECIALIZATION</span>
-                  <span className="pf-value">Mathematics, General Curriculum</span>
+                  <span className="pf-value">Full Stack Development & Cybersecurity</span>
                 </div>
               </div>
             </div>
@@ -240,27 +274,27 @@ export default function TeacherProfile() {
               <div className="pf-card-head pf-space-between">
                 <div className="pf-head-left">
                   <MdClass size={18} className="pf-head-icon" />
-                  <h3 className="pf-card-title">Assigned Classes</h3>
+                  <h3 className="pf-card-title">Assigned Course Streams</h3>
                 </div>
-                <span className="pf-count-badge">4 Total</span>
+                <span className="pf-count-badge">4 Courses</span>
               </div>
 
               <div className="pf-classes-list">
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-blue" />
-                  <span>Grade 10 - Mathematics</span>
+                  <span>React Native</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-green" />
-                  <span>Grade 9 - Science</span>
+                  <span>Django</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-blue" />
-                  <span>Grade 11 - English</span>
+                  <span>cybersecurity</span>
                 </div>
                 <div className="pf-class-pill">
                   <span className="pf-dot pf-dot-purple" />
-                  <span>General Class</span>
+                  <span>UI/UX Design</span>
                 </div>
               </div>
             </div>

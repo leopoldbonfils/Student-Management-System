@@ -2,29 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  onSnapshot,
-  doc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { collection, query, onSnapshot, doc, updateDoc, serverTimestamp, } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import {
-  MdSearch,
-  MdNotifications,
-  MdHelpOutline,
-  MdAssignment,
-  MdCheckCircle,
-  MdTrendingDown,
-  MdChevronLeft,
-  MdChevronRight,
-  MdCheck,
-  MdClose,
-} from 'react-icons/md'
+import { MdSearch, MdAssignment, MdCheckCircle, MdTrendingDown, MdCheck, MdClose, } from 'react-icons/md'
 
 interface LeaveRequestItem {
   id: string
@@ -38,7 +20,7 @@ interface LeaveRequestItem {
   durationText: string
   reason: string
   status: 'pending' | 'approved' | 'rejected'
-  createdAt?: any
+  createdAt?: Date
 }
 
 const colorPalette = ['#e0e7ff', '#dcfce7', '#fef3c7', '#fee2e2', '#f3e8ff', '#ccfbf1']
@@ -84,7 +66,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function TeacherLeaveRequestsPage() {
-  const { user, profile, loading: authLoading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
   const [requests, setRequests] = useState<LeaveRequestItem[]>([])
@@ -95,8 +77,6 @@ export default function TeacherLeaveRequestsPage() {
   const [endDateFilter, setEndDateFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 5
-
-  const teacherName = profile?.name || user?.displayName || 'Faculty'
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -138,7 +118,7 @@ export default function TeacherLeaveRequestsPage() {
             endDate: eDate,
             durationText,
             reason: data.reason || 'No description provided.',
-            status: (data.status || 'pending').toLowerCase() as any,
+            status: (data.status || 'pending').toLowerCase() as 'pending' | 'approved' | 'rejected',
             createdAt: data.createdAt,
           }
         })

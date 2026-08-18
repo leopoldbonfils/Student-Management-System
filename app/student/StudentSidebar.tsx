@@ -3,11 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  MdDashboard, MdPeople, MdCalendarToday,
-  MdSchedule, MdDescription, MdSettings, MdLogout
-} from 'react-icons/md'
-import { PiGraduationCapFill } from 'react-icons/pi'
+import { MdDashboard, MdCalendarToday, MdSchedule, MdDescription, MdSettings, MdLogout } from 'react-icons/md'
 
 const navItems = [
   { name: 'Dashboard', Icon: MdDashboard, href: '/student/dashboard' },
@@ -24,9 +20,6 @@ export default function StudentSidebar() {
       {/* Logo */}
       <Link href="/student/dashboard" style={{ textDecoration: 'none' }}>
         <div className="db-logo">
-          <div className="db-logo-icon">
-            <PiGraduationCapFill size={22} color="white" />
-          </div>
           <div>
             <p className="db-logo-title">EduPortal</p>
             <p className="db-logo-sub">MANAGEMENT SYSTEM</p>

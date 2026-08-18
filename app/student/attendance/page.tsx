@@ -1,20 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-} from 'firebase/firestore'
+import { collection, query, where,onSnapshot,} from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
 import {
-  MdSearch, MdNotifications, MdHelp,
-  MdCheckCircle, MdCancel, MdAccessTime,
+  MdSearch,
+  MdCheckCircle,
   MdChevronLeft, MdChevronRight
 } from 'react-icons/md'
 
@@ -34,8 +28,6 @@ export default function StudentAttendancePage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [activePage, setPage] = useState(1)
   const pageSize = 8
-
-  const studentInitial = (profile?.name || user?.displayName || 'S')[0]?.toUpperCase()
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -60,7 +52,7 @@ export default function StudentAttendancePage() {
           id: doc.id,
           date: data.date || '',
           class: data.class || profile?.assignedClass || 'General Class',
-          status: normalizedStatus as any,
+          status: normalizedStatus as 'Present' | 'Absent' | 'Late',
         }
       })
 
@@ -74,7 +66,7 @@ export default function StudentAttendancePage() {
     })
 
     return () => unsubscribe()
-  }, [user, profile])
+  }, [user, profile, authLoading, router])
 
   const totalDays = records.length
   const presentDays = records.filter(r => r.status === 'Present').length

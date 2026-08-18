@@ -3,24 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  getDocs,
-  doc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { collection, query, where, onSnapshot, getDocs, doc, updateDoc, serverTimestamp, } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import {
-  MdGridView, MdCheckCircle, MdCancel, MdDescription,
-  MdPersonAdd, MdCheck, MdClose, MdShowChart,
-  MdNotifications, MdMenu
-} from 'react-icons/md'
+import { MdGridView, MdCheckCircle, MdCancel, MdDescription, MdPersonAdd, MdCheck, MdClose, MdShowChart, MdMenu } from 'react-icons/md'
 
 interface LeaveRequest {
   id: string
@@ -45,7 +32,7 @@ interface ClassSlice {
 const pieColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6']
 
 export default function TeacherDashboard() {
-  const { user, profile, loading } = useAuth()
+  const { user, loading } = useAuth()
   const [totalStudents, setTotalStudents] = useState<number>(0)
   const [presentToday, setPresentToday] = useState<number>(0)
   const [absentToday, setAbsentToday] = useState<number>(0)
@@ -67,7 +54,6 @@ export default function TeacherDashboard() {
   ])
 
   const router = useRouter()
-  const teacherName = profile?.name || user?.displayName || user?.email?.split('@')[0] || 'Teacher'
   const todayStr = new Date().toISOString().split('T')[0]!
 
   useEffect(() => {
@@ -97,6 +83,8 @@ export default function TeacherDashboard() {
         }))
         setClassData(slices)
       }
+    }, (err) => {
+      console.warn('Students listener notice:', err.message)
     })
 
     // 2. Pending & Recent Leave Requests
@@ -108,7 +96,7 @@ export default function TeacherDashboard() {
       snap.forEach(d => {
         const data = d.data()
         const statusNormalized =
-          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as any
+          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as 'Pending' | 'Approved' | 'Rejected'
 
         if (data.status?.toLowerCase() === 'pending') {
           pendingCount++
@@ -125,6 +113,8 @@ export default function TeacherDashboard() {
 
       setPendingLeavesCount(pendingCount)
       setRequests(all.slice(0, 5))
+    }, (err) => {
+      console.warn('Leave requests listener notice:', err.message)
     })
 
     // 3. Attendance Today & Recent Days
@@ -189,7 +179,7 @@ export default function TeacherDashboard() {
       unsubStudents()
       unsubLeave()
     }
-  }, [todayStr])
+  }, [todayStr, loading, router, user])
 
   const handleStatusChange = async (id: string, newStatus: 'Approved' | 'Rejected') => {
     try {
@@ -205,12 +195,27 @@ export default function TeacherDashboard() {
   }
 
   // Calculate Pie slices
-  let cumulativePercent = 0
   const getCoordinatesForPercent = (percent: number): [string, string] => {
     const x = Math.cos(2 * Math.PI * percent)
     const y = Math.sin(2 * Math.PI * percent)
-    return [x.toFixed(10), y.toFixed(10)]
+    return [x.toFixed(3), y.toFixed(3)]
   }
+
+  // Pre-calculate all slice paths to avoid mutation during render
+  const slicePaths = classData.reduce((acc, slice) => {
+    const startPercent = acc.reduce((sum, s) => sum + s.percent / 100, 0)
+    const endPercent = startPercent + slice.percent / 100
+    const [startX, startY] = getCoordinatesForPercent(startPercent)
+    const [endX, endY] = getCoordinatesForPercent(endPercent)
+    const largeArcFlag = slice.percent / 100 > 0.5 ? 1 : 0
+    const pathData = [
+      `M ${startX} ${startY}`,
+      `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+      `L 0 0`,
+    ].join(' ')
+    
+    return [...acc, { ...slice, pathData }]
+  }, [] as (ClassSlice & { pathData: string })[])
 
   const presentPercentage =
     totalStudents > 0 ? ((presentToday / totalStudents) * 100).toFixed(1) : '0'
@@ -373,31 +378,15 @@ export default function TeacherDashboard() {
               {/* SVG Pie Chart */}
               <div className="t2-pie-container">
                 <svg width="180" height="180" viewBox="-1 -1 2 2" style={{ transform: 'rotate(-90deg)' }}>
-                  {classData.map((slice) => {
-                    const startPercent = cumulativePercent
-                    cumulativePercent += slice.percent / 100
-                    const endPercent = cumulativePercent
-
-                    const [startX, startY] = getCoordinatesForPercent(startPercent)
-                    const [endX, endY] = getCoordinatesForPercent(endPercent)
-                    const largeArcFlag = slice.percent / 100 > 0.5 ? 1 : 0
-
-                    const pathData = [
-                      `M ${startX} ${startY}`,
-                      `A 1 1 0 ${largeArcFlag} 1 ${endX} ${endY}`,
-                      `L 0 0`,
-                    ].join(' ')
-
-                    return (
-                      <path
-                        key={slice.label}
-                        d={pathData}
-                        fill={slice.color}
-                        stroke="#ffffff"
-                        strokeWidth="0.04"
-                      />
-                    )
-                  })}
+                  {slicePaths.map((slice) => (
+                    <path
+                      key={slice.label}
+                      d={slice.pathData}
+                      fill={slice.color}
+                      stroke="#ffffff"
+                      strokeWidth="0.04"
+                    />
+                  ))}
                 </svg>
               </div>
 

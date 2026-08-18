@@ -193,7 +193,7 @@ form {
 .db-sidebar {
   width: 148px;
   min-width: 148px;
-  background: #1e1b4b;
+  background: #1e3a8a;
   display: flex;
   flex-direction: column;
   padding: 20px 0;
@@ -209,7 +209,7 @@ form {
 .db-logo-icon {
   width: 38px;
   height: 38px;
-  background: #4f46e5;
+  background: #2563eb;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -226,7 +226,7 @@ form {
 
 .db-logo-sub {
   font-size: 8px;
-  color: #a5b4fc;
+  color: #bfdbfe;
   margin: 0;
   letter-spacing: 0.5px;
 }
@@ -247,7 +247,7 @@ form {
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: #a5b4fc;
+  color: #bfdbfe;
   font-size: 13px;
   cursor: pointer;
   width: 100%;
@@ -256,18 +256,18 @@ form {
 }
 
 .db-nav-item:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.12);
   color: #ffffff;
 }
 
 .db-nav-active {
-  background: #4f46e5 !important;
+  background: #2563eb !important;
   color: #ffffff !important;
 }
 
 .db-settings {
   margin: 0 8px;
-  color: #a5b4fc;
+  color: #bfdbfe;
 }
 
 .db-logout {
@@ -563,7 +563,7 @@ form {
 .td-sidebar {
   width: 160px;
   min-width: 160px;
-  background: #1e1b4b;
+  background: #1e3a8a;
   display: flex;
   flex-direction: column;
   padding: 18px 0;
@@ -574,14 +574,14 @@ form {
   align-items: center;
   gap: 10px;
   padding: 0 14px 22px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
   margin-bottom: 10px;
 }
 
 .td-logo-icon {
   width: 34px;
   height: 34px;
-  background: #4f46e5;
+  background: #2563eb;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -598,7 +598,7 @@ form {
 
 .td-logo-sub {
   font-size: 8px;
-  color: #a5b4fc;
+  color: #bfdbfe;
   margin: 0;
 }
 
@@ -618,7 +618,7 @@ form {
   border-radius: 7px;
   border: none;
   background: transparent;
-  color: #a5b4fc;
+  color: #bfdbfe;
   font-size: 12px;
   cursor: pointer;
   width: 100%;
@@ -627,13 +627,17 @@ form {
 }
 
 .td-nav-item:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.12);
   color: #fff;
 }
 
 .td-nav-active {
-  background: #4f46e5 !important;
+  background: #2563eb !important;
   color: #fff !important;
+}
+
+.td-settings {
+  color: #bfdbfe;
 }
 
 .td-logout {
@@ -654,10 +658,14 @@ form {
   overflow: hidden;
 }
 
-.td-topbar {
+.td-topbar,
+.db-header,
+.s2-topbar,
+.t2-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   padding: 14px 24px;
   background: #fff;
   border-bottom: 1px solid #e5e7eb;

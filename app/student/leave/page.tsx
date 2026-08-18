@@ -1,24 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  addDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
+import { collection,query,where, onSnapshot, addDoc, serverTimestamp,} from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/AuthContext'
 import TopbarRight from '@/app/components/TopbarRight'
-import {
-  MdSearch, MdNotifications,
-  MdHelp, MdUploadFile, MdChevronLeft, MdChevronRight,
-  MdVisibility, MdCheckCircle, MdError
-} from 'react-icons/md'
+import {MdSearch, MdUploadFile, MdChevronLeft, MdChevronRight, MdVisibility, MdCheckCircle, MdError } from 'react-icons/md'
 
 interface PreviousLeaveRequest {
   id: string
@@ -47,8 +35,6 @@ export default function RequestLeavePage() {
   const [activePage, setPage] = useState(1)
   const pageSize = 5
 
-  const studentInitial = (profile?.name || user?.displayName || 'S')[0]?.toUpperCase()
-
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login')
@@ -69,7 +55,7 @@ export default function RequestLeavePage() {
       snapshot.forEach(d => {
         const data = d.data()
         const statusNormalized =
-          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as any
+          (data.status?.charAt(0).toUpperCase() + data.status?.slice(1).toLowerCase()) as 'Pending' | 'Approved' | 'Rejected'
 
         if (data.status?.toLowerCase() === 'approved') appCount++
         if (data.status?.toLowerCase() === 'pending') pendCount++
@@ -95,7 +81,7 @@ export default function RequestLeavePage() {
     })
 
     return () => unsubscribe()
-  }, [user])
+  }, [user, authLoading, router])
 
   const handleSubmit = async () => {
     setErrorMsg(null)
@@ -143,9 +129,10 @@ export default function RequestLeavePage() {
       setStartDate('')
       setEndDate('')
       setReason('')
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string }
       console.error('Error creating leave request:', err)
-      setErrorMsg(err.message || 'Failed to submit leave request.')
+      setErrorMsg(error?.message || 'Failed to submit leave request.')
     } finally {
       setSubmitting(false)
     }
